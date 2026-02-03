@@ -1,0 +1,306 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Updated color palette for AMG brand - indigo/blue theme */
+  --background: oklch(0.99 0.005 240); /* Off-white background */
+  --foreground: oklch(0.25 0.08 240); /* Indigo-800 for main text */
+  --card: oklch(1 0 0); /* White for card backgrounds */
+  --card-foreground: oklch(0.25 0.08 240); /* Indigo-800 for card text */
+  --popover: oklch(1 0 0); /* White for popovers */
+  --popover-foreground: oklch(0.25 0.08 240); /* Indigo-800 for popover text */
+  --primary: oklch(0.25 0.08 240); /* Indigo-800 for primary buttons */
+  --primary-foreground: oklch(1 0 0); /* White text on primary buttons */
+  --secondary: oklch(0.92 0.01 240); /* Slate-gray for secondary elements */
+  --secondary-foreground: oklch(0.25 0.08 240); /* Indigo-800 text on secondary */
+  --muted: oklch(0.99 0.005 240); /* Off-white for muted sections */
+  --muted-foreground: oklch(0.45 0.02 240); /* Muted text color */
+  --accent: oklch(0.6 0.15 240); /* Blue-500 for accents and interactive elements */
+  --accent-foreground: oklch(1 0 0); /* White text on accents */
+  --destructive: oklch(0.55 0.22 25); /* Red for errors */
+  --destructive-foreground: oklch(1 0 0); /* White text on destructive */
+  --border: oklch(0.92 0.01 240); /* Slate-gray border */
+  --input: oklch(1 0 0); /* White input backgrounds */
+  --ring: oklch(0.6 0.15 240 / 0.5); /* Blue-500 with opacity for focus rings */
+  --chart-1: oklch(0.6 0.15 240); /* Blue-500 */
+  --chart-2: oklch(0.25 0.08 240); /* Indigo-800 */
+  --chart-3: oklch(0.92 0.01 240); /* Slate-gray */
+  --chart-4: oklch(0.99 0.005 240); /* Off-white */
+  --chart-5: oklch(0.55 0.22 25); /* Red */
+  --radius: 0.75rem; /* Rounded corners xl */
+  --sidebar: oklch(1 0 0); /* White sidebar background */
+  --sidebar-foreground: oklch(0.25 0.08 240); /* Indigo-800 sidebar text */
+  --sidebar-primary: oklch(0.99 0.005 240); /* Off-white primary sidebar section */
+  --sidebar-primary-foreground: oklch(0.25 0.08 240); /* Indigo-800 text */
+  --sidebar-accent: oklch(0.6 0.15 240); /* Blue-500 accent in sidebar */
+  --sidebar-accent-foreground: oklch(1 0 0); /* White text on sidebar accents */
+  --sidebar-border: oklch(0.92 0.01 240); /* Slate-gray border */
+  --sidebar-ring: oklch(0.6 0.15 240 / 0.5); /* Blue-500 with opacity */
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-in-out forwards;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Portal sidebar styling - transparent with backdrop blur to match background */
+.portal-sidebar-wrapper [data-calendar-sidebar],
+.calendar-page-sidebar [data-calendar-sidebar] {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] .border-sidebar-border,
+.calendar-page-sidebar [data-calendar-sidebar] .border-sidebar-border {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] .text-sidebar-foreground,
+.calendar-page-sidebar [data-calendar-sidebar] .text-sidebar-foreground {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] .text-sidebar-foreground\/60,
+.calendar-page-sidebar [data-calendar-sidebar] .text-sidebar-foreground\/60 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] .text-sidebar-primary,
+.calendar-page-sidebar [data-calendar-sidebar] .text-sidebar-primary {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] .bg-sidebar-accent,
+.calendar-page-sidebar [data-calendar-sidebar] .bg-sidebar-accent {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] .bg-sidebar-accent\/50,
+.portal-sidebar-wrapper [data-calendar-sidebar] .hover\:bg-sidebar-accent\/50:hover,
+.calendar-page-sidebar [data-calendar-sidebar] .bg-sidebar-accent\/50,
+.calendar-page-sidebar [data-calendar-sidebar] .hover\:bg-sidebar-accent\/50:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] .text-sidebar-accent-foreground,
+.calendar-page-sidebar [data-calendar-sidebar] .text-sidebar-accent-foreground {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] .bg-sidebar,
+.calendar-page-sidebar [data-calendar-sidebar] .bg-sidebar {
+  background: transparent !important;
+}
+
+/* Portal page content styling - ensure text is readable on background */
+.portal-sidebar-wrapper ~ div main {
+  color: white;
+}
+
+.portal-sidebar-wrapper ~ div main .text-foreground {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper ~ div main .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Portal cards - glassmorphism effect */
+.portal-sidebar-wrapper ~ div main [class*="card"],
+.portal-sidebar-wrapper ~ div main [class*="Card"] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.portal-sidebar-wrapper ~ div main [class*="card"] *,
+.portal-sidebar-wrapper ~ div main [class*="Card"] * {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper ~ div main [class*="card"] .text-muted-foreground,
+.portal-sidebar-wrapper ~ div main [class*="Card"] .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Remove ALL white backgrounds and highlights - use transparent/dark instead */
+.portal-sidebar-wrapper ~ div main button.bg-background,
+.portal-sidebar-wrapper ~ div main button[class*="bg-white"],
+.portal-sidebar-wrapper ~ div main [data-slot="button"].bg-background {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.portal-sidebar-wrapper ~ div main button.bg-background:hover,
+.portal-sidebar-wrapper ~ div main button[class*="bg-white"]:hover,
+.portal-sidebar-wrapper ~ div main [data-slot="button"].bg-background:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+/* Remove white backgrounds from tabs */
+.portal-sidebar-wrapper ~ div main [data-slot="tabs-trigger"][data-state="active"],
+.portal-sidebar-wrapper ~ div main [data-slot="tabs-trigger"].bg-background,
+.portal-sidebar-wrapper ~ div main [role="tablist"] button[role="tab"][data-state="active"],
+.portal-sidebar-wrapper ~ div main button[data-state="active"].bg-background {
+  background: rgba(59, 130, 246, 0.3) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper ~ div main [data-slot="tabs-trigger"]:not([data-state="active"]) {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Remove white backgrounds from badges */
+.portal-sidebar-wrapper ~ div main [data-slot="badge"].bg-background,
+.portal-sidebar-wrapper ~ div main [data-slot="badge"][class*="bg-white"] {
+  background: rgba(59, 130, 246, 0.3) !important;
+  color: white !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Remove white backgrounds from dialogs, modals, and sheets */
+.portal-sidebar-wrapper ~ div main [role="dialog"],
+.portal-sidebar-wrapper ~ div main [data-radix-dialog-content],
+.portal-sidebar-wrapper ~ div main [data-radix-sheet-content] {
+  background: rgba(15, 23, 42, 0.9) !important;
+  backdrop-filter: blur(10px) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper ~ div main [role="dialog"] *,
+.portal-sidebar-wrapper ~ div main [data-radix-dialog-content] *,
+.portal-sidebar-wrapper ~ div main [data-radix-sheet-content] * {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Remove white backgrounds from selected/active states */
+.portal-sidebar-wrapper ~ div main [aria-selected="true"],
+.portal-sidebar-wrapper ~ div main [data-selected="true"],
+.portal-sidebar-wrapper ~ div main [data-state="selected"] {
+  background: rgba(59, 130, 246, 0.3) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Remove white backgrounds from cards and containers */
+.portal-sidebar-wrapper ~ div main .bg-background:not(button):not([role="button"]),
+.portal-sidebar-wrapper ~ div main [class*="bg-white"]:not(button):not([role="button"]) {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper ~ div main .bg-background:not(button):not([role="button"]) *,
+.portal-sidebar-wrapper ~ div main [class*="bg-white"]:not(button):not([role="button"]) * {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Ensure primary buttons use blue, not white */
+.portal-sidebar-wrapper ~ div main button[data-slot="button"].bg-primary {
+  background: rgb(59, 130, 246) !important;
+  color: white !important;
+}
+
+.portal-sidebar-wrapper ~ div main button[data-slot="button"].bg-primary:hover {
+  background: rgb(37, 99, 235) !important;
+  color: white !important;
+}
