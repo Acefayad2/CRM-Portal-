@@ -6,14 +6,13 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Calendar, Users, FileText, TrendingUp, BookOpen, Settings, Menu, X } from "lucide-react"
+import { LayoutDashboard, Calendar, Users, FileText, BookOpen, Settings, Menu, X } from "lucide-react"
 
 const navigation = [
   { name: "Dashboard", href: "/portal", icon: LayoutDashboard },
   { name: "Calendars", href: "/portal/calendars", icon: Calendar },
   { name: "Clients", href: "/portal/clients", icon: Users },
   { name: "Scripts", href: "/portal/scripts", icon: FileText },
-  { name: "Performance", href: "/portal/performance", icon: TrendingUp },
   { name: "Resources", href: "/portal/resources", icon: BookOpen },
   { name: "Settings", href: "/portal/settings", icon: Settings },
 ]
@@ -48,7 +47,7 @@ export function PortalSidebar() {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-sidebar-border">
             <Link href="/portal" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-sidebar-primary">AMG</span>
+              <span className="text-2xl font-bold text-sidebar-primary">SFS</span>
             </Link>
           </div>
 
@@ -77,8 +76,8 @@ export function PortalSidebar() {
                   className={cn(
                     "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+                      ? "bg-white/10 text-white"
+                      : "text-sidebar-foreground hover:bg-white/5 hover:text-white",
                   )}
                 >
                   <item.icon className="h-5 w-5" />

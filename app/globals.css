@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated color palette for AMG brand - indigo/blue theme */
+  /* Updated color palette for SFS brand - indigo/blue theme */
   --background: oklch(0.99 0.005 240); /* Off-white background */
   --foreground: oklch(0.25 0.08 240); /* Indigo-800 for main text */
   --card: oklch(1 0 0); /* White for card backgrounds */
@@ -169,8 +169,13 @@
 
 .portal-sidebar-wrapper [data-calendar-sidebar] .bg-sidebar-accent,
 .calendar-page-sidebar [data-calendar-sidebar] .bg-sidebar-accent {
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
   color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] .bg-sidebar-accent\/50,
+.calendar-page-sidebar [data-calendar-sidebar] .bg-sidebar-accent\/50 {
+  background: rgba(255, 255, 255, 0.05) !important;
 }
 
 .portal-sidebar-wrapper [data-calendar-sidebar] .bg-sidebar-accent\/50,
@@ -201,6 +206,112 @@
 
 .portal-sidebar-wrapper ~ div main .text-muted-foreground {
   color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Override CSS variables for portal pages to remove white backgrounds */
+.portal-sidebar-wrapper ~ div main {
+  --background: transparent !important;
+  --card: rgba(255, 255, 255, 0.1) !important;
+  --card-foreground: rgba(255, 255, 255, 0.95) !important;
+  --input: rgba(255, 255, 255, 0.1) !important;
+  --muted: rgba(255, 255, 255, 0.1) !important;
+  --muted-foreground: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Override sidebar CSS variables to remove white backgrounds */
+.portal-sidebar-wrapper [data-calendar-sidebar] {
+  --sidebar-accent: rgba(255, 255, 255, 0.1) !important;
+  --sidebar-accent-foreground: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Remove white backgrounds from text elements - they should never have backgrounds */
+.portal-sidebar-wrapper ~ div main span:not([data-slot]):not([class*="badge"]):not([class*="button"]),
+.portal-sidebar-wrapper ~ div main p:not([data-slot]),
+.portal-sidebar-wrapper ~ div main h1:not([data-slot]),
+.portal-sidebar-wrapper ~ div main h2:not([data-slot]),
+.portal-sidebar-wrapper ~ div main h3:not([data-slot]),
+.portal-sidebar-wrapper ~ div main h4:not([data-slot]),
+.portal-sidebar-wrapper ~ div main h5:not([data-slot]),
+.portal-sidebar-wrapper ~ div main h6:not([data-slot]) {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Remove white backgrounds from divs that are containers, not cards */
+.portal-sidebar-wrapper ~ div main div:not([data-slot="card"]):not([class*="Card"]):not([data-slot="input"]):not([data-slot="tabs-list"]):not([data-slot="tabs-trigger"]) {
+  background-color: transparent !important;
+}
+
+/* Override Tailwind background utility classes that resolve to white - HIGH SPECIFICITY */
+.portal-sidebar-wrapper ~ div main .bg-background,
+.portal-sidebar-wrapper ~ div main [class*="bg-background"],
+.portal-sidebar-wrapper ~ div main [class*="bg-white"],
+.portal-sidebar-wrapper ~ div main [style*="background"]:not([style*="rgba"]):not([style*="rgb"]) {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* But preserve card backgrounds */
+.portal-sidebar-wrapper ~ div main .bg-card,
+.portal-sidebar-wrapper ~ div main [data-slot="card"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.portal-sidebar-wrapper ~ div main .bg-muted,
+.portal-sidebar-wrapper ~ div main [data-slot="tabs-list"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.portal-sidebar-wrapper ~ div main .bg-input,
+.portal-sidebar-wrapper ~ div main [data-slot="input"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Force remove backgrounds from ALL text elements - they should never have backgrounds */
+.portal-sidebar-wrapper ~ div main span:not([data-slot="badge"]):not([data-slot="button"]):not([role="button"]),
+.portal-sidebar-wrapper ~ div main p,
+.portal-sidebar-wrapper ~ div main h1,
+.portal-sidebar-wrapper ~ div main h2,
+.portal-sidebar-wrapper ~ div main h3,
+.portal-sidebar-wrapper ~ div main h4,
+.portal-sidebar-wrapper ~ div main h5,
+.portal-sidebar-wrapper ~ div main h6,
+.portal-sidebar-wrapper ~ div main label,
+.portal-sidebar-wrapper ~ div main [data-slot="card-title"],
+.portal-sidebar-wrapper ~ div main [data-slot="card-description"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Remove backgrounds from container divs that aren't cards */
+.portal-sidebar-wrapper ~ div main div:not([data-slot="card"]):not([class*="Card"]):not([data-slot="input"]):not([data-slot="tabs-list"]):not([data-slot="tabs-trigger"]):not([data-slot="badge"]):not([data-slot="button"]) {
+  background-color: transparent !important;
+}
+
+/* But allow specific elements that need backgrounds */
+.portal-sidebar-wrapper ~ div main [data-slot="card"],
+.portal-sidebar-wrapper ~ div main [class*="Card"] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.portal-sidebar-wrapper ~ div main [data-slot="input"],
+.portal-sidebar-wrapper ~ div main input {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.portal-sidebar-wrapper ~ div main [data-slot="tabs-trigger"][data-state="active"],
+.portal-sidebar-wrapper ~ div main [data-slot="badge"].bg-primary,
+.portal-sidebar-wrapper ~ div main button[data-slot="button"].bg-primary {
+  background: transparent !important;
+}
+
+.portal-sidebar-wrapper ~ div main [data-slot="badge"]:not(.bg-primary):not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]) {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Portal cards - glassmorphism effect */
@@ -237,26 +348,52 @@
   color: rgba(255, 255, 255, 1) !important;
 }
 
-/* Remove white backgrounds from tabs */
+/* Remove white backgrounds from tabs - override the data-[state=active]:bg-background */
 .portal-sidebar-wrapper ~ div main [data-slot="tabs-trigger"][data-state="active"],
+.portal-sidebar-wrapper ~ div main [data-slot="tabs-trigger"][data-state="active"].bg-background,
 .portal-sidebar-wrapper ~ div main [data-slot="tabs-trigger"].bg-background,
 .portal-sidebar-wrapper ~ div main [role="tablist"] button[role="tab"][data-state="active"],
 .portal-sidebar-wrapper ~ div main button[data-state="active"].bg-background {
-  background: rgba(59, 130, 246, 0.3) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
   color: rgba(255, 255, 255, 0.95) !important;
 }
 
-.portal-sidebar-wrapper ~ div main [data-slot="tabs-trigger"]:not([data-state="active"]) {
+.portal-sidebar-wrapper ~ div main [data-slot="tabs-trigger"]:not([data-state="active"]),
+.portal-sidebar-wrapper ~ div main [data-slot="tabs-trigger"]:not([data-state="active"]).bg-background {
   background: transparent !important;
+  background-color: transparent !important;
   color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Fix tabs list background */
+.portal-sidebar-wrapper ~ div main [data-slot="tabs-list"] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Remove white backgrounds from badges */
 .portal-sidebar-wrapper ~ div main [data-slot="badge"].bg-background,
-.portal-sidebar-wrapper ~ div main [data-slot="badge"][class*="bg-white"] {
-  background: rgba(59, 130, 246, 0.3) !important;
-  color: white !important;
-  border-color: rgba(59, 130, 246, 0.5) !important;
+.portal-sidebar-wrapper ~ div main [data-slot="badge"][class*="bg-white"],
+.portal-sidebar-wrapper ~ div main [data-slot="badge"].bg-primary {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.portal-sidebar-wrapper ~ div main [data-slot="badge"]:not(.bg-primary):not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]):not([class*="bg-indigo"]) {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Fix badge default variant that uses bg-primary */
+.portal-sidebar-wrapper ~ div main [data-slot="badge"][class*="border-transparent"]:not([class*="bg-destructive"]) {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.95) !important;
 }
 
 /* Remove white backgrounds from dialogs, modals, and sheets */
@@ -278,20 +415,107 @@
 .portal-sidebar-wrapper ~ div main [aria-selected="true"],
 .portal-sidebar-wrapper ~ div main [data-selected="true"],
 .portal-sidebar-wrapper ~ div main [data-state="selected"] {
-  background: rgba(59, 130, 246, 0.3) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
   color: rgba(255, 255, 255, 0.95) !important;
 }
 
 /* Remove white backgrounds from cards and containers */
 .portal-sidebar-wrapper ~ div main .bg-background:not(button):not([role="button"]),
-.portal-sidebar-wrapper ~ div main [class*="bg-white"]:not(button):not([role="button"]) {
-  background: transparent !important;
+.portal-sidebar-wrapper ~ div main [class*="bg-white"]:not(button):not([role="button"]),
+.portal-sidebar-wrapper ~ div main [data-slot="card"].bg-card,
+.portal-sidebar-wrapper ~ div main [data-slot="card"] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
   color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .portal-sidebar-wrapper ~ div main .bg-background:not(button):not([role="button"]) *,
-.portal-sidebar-wrapper ~ div main [class*="bg-white"]:not(button):not([role="button"]) * {
+.portal-sidebar-wrapper ~ div main [class*="bg-white"]:not(button):not([role="button"]) *,
+.portal-sidebar-wrapper ~ div main [data-slot="card"] *,
+.portal-sidebar-wrapper ~ div main [data-slot="card-title"] {
   color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper ~ div main [data-slot="card-description"] {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Fix input fields */
+.portal-sidebar-wrapper ~ div main [data-slot="input"],
+.portal-sidebar-wrapper ~ div main input:not([class*="bg-"]),
+.portal-sidebar-wrapper ~ div main input.bg-background {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.portal-sidebar-wrapper ~ div main [data-slot="input"]::placeholder,
+.portal-sidebar-wrapper ~ div main input::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Fix navigation sidebar items - remove white highlights */
+.portal-sidebar-wrapper [data-calendar-sidebar] a[class*="bg-sidebar-accent"],
+.portal-sidebar-wrapper [data-calendar-sidebar] a.bg-sidebar-accent,
+.portal-sidebar-wrapper [data-calendar-sidebar] nav a[class*="bg-"],
+.portal-sidebar-wrapper [data-calendar-sidebar] nav a.bg-white\/10 {
+  background: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] a:not(.bg-sidebar-accent):not([class*="bg-white"]):not([class*="bg-"]) {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.portal-sidebar-wrapper [data-calendar-sidebar] a:hover:not(.bg-sidebar-accent):not([class*="bg-white"]) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+/* Remove any white backgrounds from text elements */
+.portal-sidebar-wrapper ~ div main h1,
+.portal-sidebar-wrapper ~ div main h2,
+.portal-sidebar-wrapper ~ div main h3,
+.portal-sidebar-wrapper ~ div main h4,
+.portal-sidebar-wrapper ~ div main h5,
+.portal-sidebar-wrapper ~ div main h6,
+.portal-sidebar-wrapper ~ div main p,
+.portal-sidebar-wrapper ~ div main span,
+.portal-sidebar-wrapper ~ div main div[class*="text-"] {
+  background: transparent !important;
+}
+
+.portal-sidebar-wrapper ~ div main h1,
+.portal-sidebar-wrapper ~ div main h2,
+.portal-sidebar-wrapper ~ div main h3 {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Fix all elements with bg-background that shouldn't be white */
+.portal-sidebar-wrapper ~ div main *[class*="bg-background"]:not([class*="text-white"]):not([class*="text-primary-foreground"]):not([class*="text-accent-foreground"]) {
+  background: transparent !important;
+}
+
+/* Ensure card titles don't have white backgrounds */
+.portal-sidebar-wrapper ~ div main [data-slot="card-title"],
+.portal-sidebar-wrapper ~ div main [data-slot="card-title"] * {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Fix badge outline variant */
+.portal-sidebar-wrapper ~ div main [data-slot="badge"][class*="outline"] {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.portal-sidebar-wrapper ~ div main [data-slot="badge"][class*="outline"]:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Ensure primary buttons use blue, not white */
@@ -303,4 +527,63 @@
 .portal-sidebar-wrapper ~ div main button[data-slot="button"].bg-primary:hover {
   background: rgb(37, 99, 235) !important;
   color: white !important;
+}
+
+/* FINAL CATCH-ALL: Remove any remaining white/solid backgrounds using computed color detection */
+.portal-sidebar-wrapper ~ div main * {
+  /* Check if background is white-ish and remove it */
+}
+
+/* More specific: Target elements with white background colors */
+.portal-sidebar-wrapper ~ div main *[style*="background"]:not([style*="rgba"]):not([style*="rgb"]):not([style*="transparent"]) {
+  background: transparent !important;
+}
+
+/* Override any inline styles that might be white */
+.portal-sidebar-wrapper ~ div main [style*="background-color: white"],
+.portal-sidebar-wrapper ~ div main [style*="background-color:#fff"],
+.portal-sidebar-wrapper ~ div main [style*="background-color:#ffffff"],
+.portal-sidebar-wrapper ~ div main [style*="background: white"],
+.portal-sidebar-wrapper ~ div main [style*="background:#fff"],
+.portal-sidebar-wrapper ~ div main [style*="background:#ffffff"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* COMPREHENSIVE: Remove ALL white/light backgrounds from buttons, badges, and interactive elements */
+.portal-sidebar-wrapper ~ div main button[class*="outline"]:not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]):not([class*="bg-primary"]),
+.portal-sidebar-wrapper ~ div main [data-slot="button"][class*="outline"]:not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]):not([class*="bg-primary"]) {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.portal-sidebar-wrapper ~ div main button[class*="outline"]:hover:not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]):not([class*="bg-primary"]),
+.portal-sidebar-wrapper ~ div main [data-slot="button"][class*="outline"]:hover:not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]):not([class*="bg-primary"]) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Remove white backgrounds from all badge variants */
+.portal-sidebar-wrapper ~ div main [data-slot="badge"]:not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]):not([class*="bg-primary"]):not([class*="bg-indigo"]):not([class*="bg-yellow"]):not([class*="bg-purple"]):not([class*="bg-pink"]):not([class*="bg-orange"]):not([class*="bg-cyan"]):not([class*="bg-teal"]) {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Remove white borders/rings from circular elements */
+.portal-sidebar-wrapper ~ div main [class*="rounded-full"]:not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]):not([class*="bg-yellow"]):not([class*="bg-purple"]):not([class*="bg-pink"]):not([class*="bg-orange"]):not([class*="bg-indigo"]):not([class*="bg-cyan"]) {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure all text in cards is white */
+.portal-sidebar-wrapper ~ div main [data-slot="card"] p,
+.portal-sidebar-wrapper ~ div main [data-slot="card"] span:not([class*="badge"]):not([class*="button"]),
+.portal-sidebar-wrapper ~ div main [class*="Card"] p,
+.portal-sidebar-wrapper ~ div main [class*="Card"] span:not([class*="badge"]):not([class*="button"]) {
+  color: rgba(255, 255, 255, 0.95) !important;
+  background: transparent !important;
+  background-color: transparent !important;
 }

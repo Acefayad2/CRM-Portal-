@@ -8,7 +8,7 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export const metadata: Metadata = {
-  title: "AMG - Protect Today. Grow Tomorrow.",
+  title: "SFS - Protect Today. Grow Tomorrow.",
   description: "Professional life insurance, IUL, annuities, debt solutions, and retirement planning services.",
   generator: "v0.app",
 }

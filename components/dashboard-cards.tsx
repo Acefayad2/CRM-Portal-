@@ -68,10 +68,10 @@ export function PipelineCard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {pipelineData.map((item) => (
             <div key={item.status} className="text-center space-y-2">
-              <div className={`w-12 h-12 ${item.color} rounded-full flex items-center justify-center mx-auto`}>
+              <div className={`w-12 h-12 ${item.color} rounded-full flex items-center justify-center mx-auto border-0 shadow-lg`}>
                 <span className="text-white font-bold text-lg">{item.count}</span>
               </div>
-              <p className="text-sm font-medium">{item.status}</p>
+              <p className="text-sm font-medium text-white">{item.status}</p>
             </div>
           ))}
         </div>
@@ -232,12 +232,12 @@ export function QuickLinksCard() {
         <CardDescription>Common actions and shortcuts</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
           {quickLinks.map((link) => (
             <Button
               key={link.name}
               variant="outline"
-              className="h-auto p-4 flex flex-col items-center space-y-2 bg-transparent"
+              className="h-auto p-4 flex flex-col items-center space-y-2 bg-transparent border-white/20 hover:bg-white/10 hover:border-white/30 text-white"
               asChild
             >
               <a href={link.href}>

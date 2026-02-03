@@ -51,7 +51,7 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
     } else if (action === "text") {
       window.open(`sms:${client.phone}`)
     } else if (action === "email") {
-      window.open(`mailto:${client.email}?subject=AMG%20Follow-up`)
+      window.open(`mailto:${client.email}?subject=SFS%20Follow-up`)
     }
   }
 
