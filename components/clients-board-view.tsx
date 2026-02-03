@@ -28,8 +28,6 @@ export function ClientsBoardView({ onClientSelect }: ClientsBoardViewProps) {
       Working: "border-yellow-200 bg-yellow-50",
       "Presentation Set": "border-purple-200 bg-purple-50",
       "Follow-Up": "border-orange-200 bg-orange-50",
-      "App Submitted": "border-indigo-200 bg-indigo-50",
-      "In Force": "border-green-200 bg-green-50",
       Lost: "border-red-200 bg-red-50",
       "Do Not Contact": "border-gray-200 bg-gray-50",
     }

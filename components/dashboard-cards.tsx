@@ -23,9 +23,6 @@ const pipelineData = [
   { status: "Appt Set", count: 0, color: "bg-purple-500" },
   { status: "Presented", count: 0, color: "bg-orange-500" },
   { status: "Follow-Up", count: 0, color: "bg-pink-500" },
-  { status: "App Submitted", count: 0, color: "bg-indigo-500" },
-  { status: "Pending UW", count: 0, color: "bg-cyan-500" },
-  { status: "In Force", count: 0, color: "bg-green-500" },
 ]
 
 const followUps: Array<{
@@ -219,7 +216,6 @@ export function QuickLinksCard() {
     { name: "Create Client", icon: UserPlus, href: "/portal/clients?action=create" },
     { name: "Log Contact", icon: Phone, href: "/portal/clients?action=log" },
     { name: "New Appointment", icon: Calendar, href: "/portal/calendars?action=create" },
-    { name: "Upload File", icon: Upload, href: "/portal/resources?action=upload" },
   ]
 
   return (

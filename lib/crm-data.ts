@@ -39,8 +39,6 @@ export type ClientStatus =
   | "Working"
   | "Presentation Set"
   | "Follow-Up"
-  | "App Submitted"
-  | "In Force"
   | "Lost"
   | "Do Not Contact"
 
@@ -53,8 +51,6 @@ export const statusOptions: ClientStatus[] = [
   "Working",
   "Presentation Set",
   "Follow-Up",
-  "App Submitted",
-  "In Force",
   "Lost",
   "Do Not Contact",
 ]

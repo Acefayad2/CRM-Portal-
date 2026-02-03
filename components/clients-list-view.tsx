@@ -101,8 +101,6 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
       Working: "bg-yellow-500",
       "Presentation Set": "bg-purple-500",
       "Follow-Up": "bg-orange-500",
-      "App Submitted": "bg-indigo-500",
-      "In Force": "bg-green-500",
       Lost: "bg-red-500",
       "Do Not Contact": "bg-gray-500",
     }
