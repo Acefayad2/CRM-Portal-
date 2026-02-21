@@ -12,6 +12,8 @@ import Twilio from "twilio"
 import { supabase, isSupabaseConfigured } from "@/lib/supabase"
 import { canSendSms, recordSmsSent } from "@/lib/workspace"
 import { validatePhone } from "@/lib/sms-utils"
+import { getEmailTemplate, renderTemplate } from "@/lib/email-templates"
+import { sendEmail } from "@/lib/email"
 
 const REMINDER_WINDOW_HOURS_MIN = 23.5
 const REMINDER_WINDOW_HOURS_MAX = 24.5
@@ -58,16 +60,18 @@ export async function POST(request: Request) {
     const authToken = process.env.TWILIO_AUTH_TOKEN
     const fromNumber = process.env.TWILIO_PHONE_NUMBER
     const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
-    if (!accountSid || !authToken) {
-      return NextResponse.json({ error: "SMS (Twilio) not configured" }, { status: 503 })
+    const smsConfigured = !!(accountSid && authToken && (messagingServiceSid || fromNumber))
+    const emailConfigured = !!process.env.RESEND_API_KEY
+    if (!smsConfigured && !emailConfigured) {
+      return NextResponse.json({ error: "Configure Twilio (SMS) or Resend (email) for reminders" }, { status: 503 })
     }
-    if (!messagingServiceSid && !fromNumber) {
-      return NextResponse.json({ error: "Set TWILIO_PHONE_NUMBER or TWILIO_MESSAGING_SERVICE_SID" }, { status: 503 })
-    }
+
+    const twilioClient = smsConfigured ? Twilio(accountSid!, authToken!) : null
+    const fromPhone = fromNumber ?? "(Messaging Service)"
 
     const { data: rows, error } = await supabase
       .from("calendar_events")
-      .select("id, user_id, workspace_id, title, start_time, end_time, date, location, client_id, attendee_phones")
+      .select("id, user_id, workspace_id, title, start_time, end_time, date, location, client_id, attendee_phones, attendee_emails")
       .is("reminder_sent_at", null)
       .not("date", "is", null)
 
@@ -77,8 +81,6 @@ export async function POST(request: Request) {
     }
 
     const eventsInWindow = (rows ?? []).filter((r) => eventStartInWindow(r))
-    const twilioClient = Twilio(accountSid, authToken)
-    const fromPhone = fromNumber ?? "(Messaging Service)"
     const results: { eventId: string; sent: number; errors: string[] }[] = []
 
     for (const event of eventsInWindow) {
@@ -95,21 +97,33 @@ export async function POST(request: Request) {
       }
 
       const phones: string[] = []
+      const emails: string[] = []
+      let clientName = ""
 
       if (event.client_id) {
         const { data: client } = await supabase
           .from("clients")
-          .select("phone")
+          .select("phone, email, first_name, last_name")
           .eq("id", event.client_id)
           .single()
         const p = client?.phone?.trim()
         if (p) phones.push(p)
+        const e = client?.email?.trim()
+        if (e) emails.push(e)
+        if (client?.first_name || client?.last_name) {
+          clientName = [client?.first_name, client?.last_name].filter(Boolean).join(" ").trim()
+        }
       }
 
       const attendeePhones = Array.isArray(event.attendee_phones) ? event.attendee_phones : []
       for (const p of attendeePhones) {
         if (typeof p === "string" && p.trim()) phones.push(p.trim())
       }
+      const attendeeEmails = Array.isArray(event.attendee_emails) ? event.attendee_emails : []
+      for (const e of attendeeEmails) {
+        if (typeof e === "string" && e.trim()) emails.push(e.trim())
+      }
+      const uniqueEmails = [...new Set(emails)]
 
       const uniquePhones = [...new Set(phones)]
       const validPhones = uniquePhones.filter((p) => validatePhone(p).valid)
@@ -119,30 +133,67 @@ export async function POST(request: Request) {
       let sent = 0
       const errors: string[] = []
 
-      for (const to of validPhones) {
-        try {
-          const params: Record<string, string> = {
-            to,
-            body: messageBody,
+      if (twilioClient && validPhones.length > 0) {
+        const smsCheck = await canSendSms(workspaceId)
+        if (smsCheck.ok) {
+          for (const to of validPhones) {
+            try {
+              const params: Record<string, string> = {
+                to,
+                body: messageBody,
+              }
+              if (messagingServiceSid) params.messagingServiceSid = messagingServiceSid
+              else params.from = fromNumber!
+
+              const webhookBase = process.env.TWILIO_WEBHOOK_BASE_URL
+              if (webhookBase) params.statusCallback = `${webhookBase}/api/twilio/webhook`
+
+              const twilioMessage = await twilioClient.messages.create(params)
+              await recordSmsSent(workspaceId)
+              await supabase.from("sms_logs").insert({
+                workspace_id: workspaceId,
+                to_phone: to,
+                from_phone: fromPhone,
+                body: messageBody,
+                provider_message_id: twilioMessage.sid ?? "",
+              })
+              sent++
+            } catch (e) {
+              errors.push(`${to}: ${e instanceof Error ? e.message : "Send failed"}`)
+            }
           }
-          if (messagingServiceSid) params.messagingServiceSid = messagingServiceSid
-          else params.from = fromNumber!
+        }
+      }
 
-          const webhookBase = process.env.TWILIO_WEBHOOK_BASE_URL
-          if (webhookBase) params.statusCallback = `${webhookBase}/api/twilio/webhook`
-
-          const twilioMessage = await twilioClient.messages.create(params)
-          await recordSmsSent(workspaceId)
-          await supabase.from("sms_logs").insert({
-            workspace_id: workspaceId,
-            to_phone: to,
-            from_phone: fromPhone,
-            body: messageBody,
-            provider_message_id: twilioMessage.sid ?? "",
-          })
-          sent++
-        } catch (e) {
-          errors.push(`${to}: ${e instanceof Error ? e.message : "Send failed"}`)
+      const template = await getEmailTemplate("appointment_reminder", workspaceId)
+      if (template && uniqueEmails.length > 0) {
+        const datePart = new Date(event.date + "T12:00:00").toLocaleDateString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+        const timePart = `${event.start_time}–${event.end_time}`
+        const { subject, html, text } = renderTemplate(
+          template.subject,
+          template.body_html,
+          template.body_text,
+          {
+            title: event.title,
+            date: datePart,
+            time: timePart,
+            location: event.location ?? "",
+            clientName: clientName || undefined,
+          }
+        )
+        for (const to of uniqueEmails) {
+          try {
+            const emailResult = await sendEmail({ to, subject, html, text })
+            if (emailResult.ok) sent++
+            else errors.push(`${to}: ${emailResult.error}`)
+          } catch (e) {
+            errors.push(`${to}: ${e instanceof Error ? e.message : "Email failed"}`)
+          }
         }
       }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -26,11 +26,15 @@ import {
   CreditCard,
   PanelLeftClose,
   PanelLeft,
+  ShieldCheck,
+  Video,
 } from "lucide-react"
 import { useSidebar } from "@/contexts/sidebar-context"
+import { getUserInitials } from "@/lib/avatar-initials"
 
-const navigation = [
+const baseNavigation = [
   { name: "Dashboard", href: "/portal", icon: LayoutDashboard },
+  { name: "Presentations", href: "/portal/meetings", icon: Video },
   { name: "Calendars", href: "/portal/calendars", icon: Calendar },
   { name: "Clients", href: "/portal/clients", icon: Users },
   { name: "Team", href: "/portal/team", icon: UsersRound },
@@ -40,13 +44,32 @@ const navigation = [
   { name: "Billing", href: "/portal/settings/billing", icon: CreditCard },
   { name: "Settings", href: "/portal/settings", icon: Settings },
 ]
+const adminNavItem = { name: "Admin", href: "/portal/admin", icon: ShieldCheck }
 
 export function PortalSidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [userProfile, setUserProfile] = useState<{ firstName?: string; lastName?: string; email?: string } | null>(null)
   const pathname = usePathname()
   const { isCollapsed, toggleSidebar } = useSidebar()
 
-  const NavLink = ({ item }: { item: (typeof navigation)[0] }) => {
+  useEffect(() => {
+    fetch("/api/workspaces/members")
+      .then((res) => (res.ok ? res.json() : {}))
+      .then((data) => setIsAdmin(data.currentUserRole === "admin"))
+      .catch(() => setIsAdmin(false))
+  }, [])
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setUserProfile(data ? { firstName: data.firstName, lastName: data.lastName, email: data.email } : null))
+      .catch(() => setUserProfile(null))
+  }, [])
+
+  const navigation = isAdmin ? [adminNavItem, ...baseNavigation] : baseNavigation
+
+  const NavLink = ({ item }: { item: (typeof baseNavigation)[0] | typeof adminNavItem }) => {
     const isActive = pathname === item.href
     const link = (
       <Link
@@ -145,21 +168,31 @@ export function PortalSidebar() {
               <div className="flex items-center space-x-3">
                 <Link href="/portal/settings" className="shrink-0">
                   <Avatar className="cursor-pointer hover:ring-2 hover:ring-sidebar-primary/60 hover:ring-offset-2 hover:ring-offset-sidebar bg-sidebar-accent text-sidebar-accent-foreground">
-                    <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground" />
+                    <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground">
+                      {userProfile
+                        ? getUserInitials(userProfile.firstName, userProfile.lastName, userProfile.email)
+                        : "…"}
+                    </AvatarFallback>
                   </Avatar>
                 </Link>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate"></p>
-                  <p className="text-xs text-sidebar-foreground/60 truncate"></p>
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    {userProfile
+                      ? [userProfile.firstName, userProfile.lastName].filter(Boolean).join(" ") || userProfile.email || "Account"
+                      : ""}
+                  </p>
+                  <p className="text-xs text-sidebar-foreground/60 truncate">
+                    {userProfile?.email ?? ""}
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1">
             {navigation.map((item) => (
-              <NavLink key={item.name} item={item} />
+              <NavLink key={item.name} item={item as (typeof baseNavigation)[0]} />
             ))}
           </nav>
 

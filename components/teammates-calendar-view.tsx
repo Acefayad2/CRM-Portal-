@@ -10,6 +10,8 @@ interface Teammate {
   name: string
   email: string
   avatar?: string
+  shareAvailability?: boolean
+  allowTimeSlotRequests?: boolean
   events: Array<{
     id: string
     title: string
@@ -71,15 +73,20 @@ export function TeammatesCalendarView({ teammates, onRequestTimeSlot }: Teammate
               className="text-white text-sm hover:text-blue-300 transition-colors cursor-pointer flex-1 text-left"
             >
               {teammate.name}
+              {teammate.shareAvailability === false && (
+                <span className="text-white/50 text-xs ml-1">(Availability hidden)</span>
+              )}
             </button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-blue-500 hover:bg-blue-600 text-white border-0 text-xs px-3 py-1 h-7"
-              onClick={() => handleRequestClick(teammate)}
-            >
-              Request
-            </Button>
+            {teammate.allowTimeSlotRequests !== false && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-blue-500 hover:bg-blue-600 text-white border-0 text-xs px-3 py-1 h-7"
+                onClick={() => handleRequestClick(teammate)}
+              >
+                Request
+              </Button>
+            )}
           </div>
         ))}
       </div>

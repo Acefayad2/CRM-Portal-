@@ -11,6 +11,8 @@ export interface WorkspaceMember {
   id: string
   email: string
   role: string
+  shareAvailability: boolean
+  allowTimeSlotRequests: boolean
 }
 
 export async function GET() {
@@ -53,13 +55,19 @@ export async function GET() {
     for (const m of membersData) {
       try {
         const { data: userData } = await supabase.auth.admin.getUserById(m.user_id)
+        const meta = userData?.user?.user_metadata ?? {}
+        const privacy = (meta.privacy as Record<string, unknown>) ?? {}
+        const shareAvailability = privacy.shareAvailability !== false
+        const allowTimeSlotRequests = privacy.allowTimeSlotRequests !== false
         members.push({
           id: m.user_id,
           email: userData?.user?.email ?? "Unknown",
           role: m.role,
+          shareAvailability,
+          allowTimeSlotRequests,
         })
       } catch {
-        members.push({ id: m.user_id, email: "Unknown", role: m.role })
+        members.push({ id: m.user_id, email: "Unknown", role: m.role, shareAvailability: true, allowTimeSlotRequests: true })
       }
     }
 

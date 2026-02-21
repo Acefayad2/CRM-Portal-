@@ -18,6 +18,7 @@ export async function GET() {
     }
 
     const metadata = user.user_metadata ?? {}
+    const privacy = (metadata.privacy as Record<string, unknown>) ?? {}
     return NextResponse.json({
       email: user.email ?? "",
       firstName: metadata.first_name ?? metadata.firstName ?? "",
@@ -25,6 +26,13 @@ export async function GET() {
       phone: metadata.phone ?? "",
       title: metadata.title ?? "",
       bio: metadata.bio ?? "",
+      privacy: {
+        profileVisibility: (privacy.profileVisibility as string) ?? "team",
+        showEmail: privacy.showEmail !== false,
+        showPhone: privacy.showPhone !== false,
+        allowTimeSlotRequests: privacy.allowTimeSlotRequests !== false,
+        shareAvailability: privacy.shareAvailability !== false,
+      },
     })
   } catch (err) {
     console.error("[profile] GET Error:", err)

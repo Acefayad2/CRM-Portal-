@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { format } from "date-fns"
+import { format, startOfWeek, endOfWeek } from "date-fns"
 import Image from "next/image"
 import { PortalSidebar } from "@/components/portal-sidebar"
 import { useSidebar } from "@/contexts/sidebar-context"
@@ -313,107 +313,117 @@ export default function CalendarsPage() {
   // User calendars - empty by default
   const myCalendars: Array<{ name: string; color: string }> = []
 
-  // Sample teammates data
-  const [teammates] = useState([
-    {
-      id: "1",
-      name: "Sarah Johnson",
-      email: "sarah.j@company.com",
-      events: [
-        {
-          id: "1",
-          title: "Team Standup",
-          startTime: "09:00",
-          endTime: "09:30",
-          date: new Date().toISOString().split("T")[0],
-          color: "bg-blue-500",
-          day: 1,
-          isVisible: true,
-          isTimeBlock: false,
-        },
-        {
-          id: "2",
-          title: "Client Meeting",
-          startTime: "14:00",
-          endTime: "15:00",
-          date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-          color: "bg-green-500",
-          day: 2,
-          isVisible: true,
-          isTimeBlock: false,
-        },
-        {
-          id: "3",
-          title: "Focus Time",
-          startTime: "10:00",
-          endTime: "11:00",
-          date: new Date().toISOString().split("T")[0],
-          color: "bg-gray-500",
-          day: 1,
-          isVisible: false,
-          isTimeBlock: true,
-        },
-      ],
-    },
-    {
-      id: "2",
-      name: "Michael Chen",
-      email: "michael.c@company.com",
-      events: [
-        {
-          id: "1",
-          title: "Sprint Planning",
-          startTime: "10:00",
-          endTime: "11:30",
-          date: new Date().toISOString().split("T")[0],
-          color: "bg-indigo-500",
-          day: 1,
-          isVisible: true,
-          isTimeBlock: false,
-        },
-        {
-          id: "2",
-          title: "Design Review",
-          startTime: "13:00",
-          endTime: "14:00",
-          date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-          color: "bg-pink-500",
-          day: 4,
-          isVisible: true,
-          isTimeBlock: false,
-        },
-      ],
-    },
-    {
-      id: "3",
-      name: "Emily Rodriguez",
-      email: "emily.r@company.com",
-      events: [
-        {
-          id: "1",
-          title: "Product Demo",
-          startTime: "09:00",
-          endTime: "10:00",
-          date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-          color: "bg-yellow-500",
-          day: 2,
-          isVisible: true,
-          isTimeBlock: false,
-        },
-        {
-          id: "2",
-          title: "Team Lunch",
-          startTime: "12:00",
-          endTime: "13:00",
-          date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-          color: "bg-orange-500",
-          day: 5,
-          isVisible: true,
-          isTimeBlock: false,
-        },
-      ],
-    },
-  ])
+  // Teammates from workspace; availability only for those with shareAvailability on
+  const [teammates, setTeammates] = useState<
+    Array<{
+      id: string
+      name: string
+      email: string
+      shareAvailability: boolean
+      allowTimeSlotRequests: boolean
+      events: Array<{
+        id: string
+        title: string
+        startTime: string
+        endTime: string
+        date: string
+        color: string
+        day: number
+        isVisible?: boolean
+        isTimeBlock?: boolean
+      }>
+    }>
+  >([])
+  const [teammatesLoading, setTeammatesLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setTeammatesLoading(true)
+    const now = new Date()
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
+    const startStr = format(weekStart, "yyyy-MM-dd")
+    const endStr = format(weekEnd, "yyyy-MM-dd")
+
+    fetch("/api/workspaces/members")
+      .then((res) => (res.ok ? res.json() : { members: [], currentUserId: null }))
+      .then((data) => {
+        if (cancelled || !data?.members?.length) {
+          if (!cancelled) setTeammates([])
+          return
+        }
+        const currentUserId = data.currentUserId as string | null
+        const others = (data.members as Array<{ id: string; email: string; role: string; shareAvailability?: boolean; allowTimeSlotRequests?: boolean }>).filter(
+          (m) => m.id !== currentUserId
+        )
+        if (others.length === 0) {
+          setTeammates([])
+          return
+        }
+        const nameFromEmail = (email: string) => {
+          const part = email.replace(/@.*/, "").replace(/[._]/g, " ")
+          return part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : "Teammate"
+        }
+        Promise.all(
+          others.map((m) => {
+            const shareAvailability = m.shareAvailability !== false
+            const allowTimeSlotRequests = m.allowTimeSlotRequests !== false
+            if (!shareAvailability) {
+              return Promise.resolve({
+                id: m.id,
+                name: nameFromEmail(m.email),
+                email: m.email,
+                shareAvailability: false as const,
+                allowTimeSlotRequests,
+                events: [] as Array<{ id: string; title: string; startTime: string; endTime: string; date: string; color: string; day: number; isVisible?: boolean; isTimeBlock?: boolean }>,
+              })
+            }
+            return fetch(
+              `/api/calendar/teammate-events?userId=${encodeURIComponent(m.id)}&start=${startStr}&end=${endStr}`
+            )
+              .then((r) => (r.ok ? r.json() : { events: [] }))
+              .then((payload) => ({
+                id: m.id,
+                name: nameFromEmail(m.email),
+                email: m.email,
+                shareAvailability: true as const,
+                allowTimeSlotRequests,
+                events: (payload.events ?? []).map((e: Record<string, unknown>) => ({
+                  id: String(e.id),
+                  title: String(e.title ?? ""),
+                  startTime: String(e.startTime ?? "00:00"),
+                  endTime: String(e.endTime ?? "00:00"),
+                  date: e.date ? String(e.date).split("T")[0] : "",
+                  color: String(e.color ?? "bg-blue-500"),
+                  day: Number(e.day ?? 0),
+                  isVisible: e.isVisible !== false,
+                  isTimeBlock: e.isTimeBlock === true,
+                })),
+              }))
+          })
+        ).then((list) => {
+          if (!cancelled) {
+            setTeammates(
+              list.map(({ id, name, email, shareAvailability, allowTimeSlotRequests, events }) => ({
+                id,
+                name,
+                email,
+                shareAvailability,
+                allowTimeSlotRequests,
+                events,
+              }))
+            )
+          }
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setTeammates([])
+      })
+      .finally(() => {
+        if (!cancelled) setTeammatesLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [])
 
   // Time slot requests state
   const [timeSlotRequests, setTimeSlotRequests] = useState<
@@ -498,6 +508,21 @@ export default function CalendarsPage() {
       if (res.ok && data.event) {
         const ev = { ...data.event, day: new Date(data.event.date).getDay() || 7 }
         setAllEvents((prev) => [...prev, ev])
+        try {
+          await fetch("/api/calendar/booking-confirmation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              requesterId: request.requesterId,
+              title: request.title || "Meeting",
+              date: request.date,
+              startTime: request.startTime,
+              endTime: request.endTime,
+            }),
+          })
+        } catch {
+          // Non-blocking; confirmation email best-effort
+        }
       }
     } catch (err) {
       console.error(err)
@@ -827,16 +852,20 @@ export default function CalendarsPage() {
 
             {/* Teammates Calendar View */}
             <div>
-              <TeammatesCalendarView
-                teammates={teammates.map((t) => ({
-                  ...t,
-                  events: t.events.map((e) => ({
-                    ...e,
-                    date: e.date || new Date().toISOString().split("T")[0],
-                  })),
-                }))}
-                onRequestTimeSlot={handleTimeSlotRequest}
-              />
+              {teammatesLoading ? (
+                <p className="text-white/70 text-sm">Loading teammates…</p>
+              ) : (
+                <TeammatesCalendarView
+                  teammates={teammates.map((t) => ({
+                    ...t,
+                    events: t.events.map((e) => ({
+                      ...e,
+                      date: e.date || new Date().toISOString().split("T")[0],
+                    })),
+                  }))}
+                  onRequestTimeSlot={handleTimeSlotRequest}
+                />
+              )}
             </div>
           </div>
 
@@ -1360,56 +1389,69 @@ export default function CalendarsPage() {
           </div>
         )}
 
-        {/* Create Event Modal */}
+        {/* Create Event Modal - white card, dark grey inputs for contrast */}
         {showCreateEventModal && (
-          <div className={`fixed inset-0 bg-black/40 flex items-start justify-start z-50 ${isCollapsed ? 'pt-24 pl-24' : 'pt-24 pl-[34rem]'}`}>
-            <div className="relative p-6 rounded-xl max-w-md w-full overflow-hidden shadow-2xl create-event-modal" style={{ backgroundColor: "#ffffff", opacity: 1, border: "2px solid #1f2937" }}>
-              <style>{`.create-event-modal{ background:#ffffff !important; opacity:1 !important; }.create-event-modal label{ color:#000 !important; }.create-event-modal input[type="text"],.create-event-modal input[type="time"],.create-event-modal select,.create-event-modal textarea{ color:#fff !important; border:2px solid #374151 !important; background:#4b5563 !important; }.create-event-modal input[type="text"]::placeholder,.create-event-modal textarea::placeholder{ color:#9ca3af !important; }`}</style>
-              <div className="absolute inset-0 rounded-xl z-0" style={{ backgroundColor: "#ffffff", opacity: 1 }} aria-hidden="true" />
-              <h3 className="text-2xl font-bold mb-4 relative z-10" style={{ color: "#000" }}>Create New Event</h3>
+          <div className={`fixed inset-0 bg-black/40 flex items-start justify-start z-50 ${isCollapsed ? "pt-24 pl-24" : "pt-24 pl-[34rem]"}`}>
+            <style>{`
+              .create-event-modal { background: #ffffff !important; color: #111827 !important; }
+              .create-event-modal .create-event-title { color: #111827 !important; }
+              .create-event-modal label { color: #1f2937 !important; }
+              .create-event-modal .create-event-input,
+              .create-event-modal input[type="text"],
+              .create-event-modal input[type="time"],
+              .create-event-modal select,
+              .create-event-modal textarea { background: #374151 !important; border: 1px solid #4b5563 !important; color: #f9fafb !important; }
+              .create-event-modal input::placeholder,
+              .create-event-modal textarea::placeholder { color: #9ca3af !important; }
+              .create-event-modal select option { background: #374151; color: #f9fafb; }
+              .create-event-modal .create-event-hint { color: #4b5563 !important; }
+              .create-event-modal .create-event-section { background: #f3f4f6 !important; color: #111827 !important; border-color: #d1d5db !important; }
+              .create-event-modal .create-event-chip { background: #e5e7eb !important; color: #1f2937 !important; }
+              .create-event-modal .create-event-chip button { color: #4b5563 !important; }
+              .create-event-modal input[type="checkbox"] { accent-color: #2563eb; }
+            `}</style>
+            <div className="create-event-modal relative p-6 rounded-xl max-w-md w-full overflow-y-auto max-h-[90vh] shadow-2xl border border-gray-200">
+              <h3 className="create-event-title text-2xl font-bold mb-4">Create New Event</h3>
 
-              <form onSubmit={handleSubmitEvent} className="space-y-4 relative z-10" style={{ color: "#000" }}>
+              <form onSubmit={handleSubmitEvent} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Title</label>
+                  <label className="block text-sm font-medium mb-1">Title</label>
                   <input
                     type="text"
                     name="title"
                     value={newEvent.title}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-[#9ca3af]"
-                    style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
+                    className="create-event-input w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Event title"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Start Time</label>
+                    <label className="block text-sm font-medium mb-1">Start Time</label>
                     <input
                       type="time"
                       name="startTime"
                       value={newEvent.startTime}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
+                      className="create-event-input w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>End Time</label>
+                    <label className="block text-sm font-medium mb-1">End Time</label>
                     <input
                       type="time"
                       name="endTime"
                       value={newEvent.endTime}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
+                      className="create-event-input w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Date</label>
-                  <div className="[&_button]:!bg-[#4b5563] [&_button]:!text-white [&_button]:!border-[#374151] [&_button]:!border-2 [&_svg]:!text-[#9ca3af]">
+                  <label className="block text-sm font-medium mb-1">Date</label>
+                  <div className="[&_button]:!bg-[#374151] [&_button]:!text-[#f9fafb] [&_button]:!border-[#4b5563] [&_button]:!border [&_svg]:!text-[#9ca3af]">
                     <DatePicker
                       value={newEvent.date}
                       onChange={(date) =>
@@ -1511,25 +1553,23 @@ export default function CalendarsPage() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Location</label>
+                  <label className="block text-sm font-medium mb-1">Location</label>
                   <input
                     type="text"
                     name="location"
                     value={newEvent.location}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-[#9ca3af]"
-                    style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
+                    className="create-event-input w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Event location"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Client (reminder)</label>
+                  <label className="block text-sm font-medium mb-1">Client (reminder)</label>
                   <select
                     value={eventClientId}
                     onChange={(e) => setEventClientId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
+                    className="create-event-input w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">None</option>
                     {calendarClients.map((c) => (
@@ -1538,52 +1578,51 @@ export default function CalendarsPage() {
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs mt-1" style={{ color: "#374151" }}>
+                  <p className="create-event-hint text-xs mt-1">
                     Link a CRM client to send them an SMS reminder 24h before.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Other phones for reminders</label>
+                  <label className="block text-sm font-medium mb-1">Other phones for reminders</label>
                   <textarea
                     value={eventAttendeePhones}
                     onChange={(e) => setEventAttendeePhones(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[60px] placeholder-[#9ca3af]"
-                    style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
+                    rows={3}
+                    className="create-event-input w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-[72px]"
                     placeholder="One phone per line, e.g. +15551234567"
                   />
-                  <p className="text-xs mt-1" style={{ color: "#374151" }}>
+                  <p className="create-event-hint text-xs mt-1">
                     These numbers will receive an SMS reminder 24h before the appointment.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Description</label>
+                  <label className="block text-sm font-medium mb-1">Description</label>
                   <textarea
                     name="description"
                     value={newEvent.description}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px] placeholder-[#9ca3af]"
-                    style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
+                    rows={4}
+                    className="create-event-input w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-[96px]"
                     placeholder="Event description"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Attendees</label>
+                  <label className="block text-sm font-medium mb-1">Attendees</label>
                   <div className="flex gap-2 mb-2">
                     <input
                       type="text"
                       value={attendeeInput}
                       onChange={(e) => setAttendeeInput(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-[#9ca3af]"
-                      style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
+                      className="create-event-input flex-1 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Add attendee"
                     />
                     <button
                       type="button"
                       onClick={handleAddAttendee}
-                      className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                      className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-medium"
                     >
                       Add
                     </button>
@@ -1592,13 +1631,12 @@ export default function CalendarsPage() {
                   {newEvent.attendees.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {newEvent.attendees.map((attendee, index) => (
-                        <div key={index} className="flex items-center rounded-full px-3 py-1" style={{ backgroundColor: "#e5e7eb" }}>
-                          <span className="text-sm font-medium" style={{ color: "#000" }}>{attendee}</span>
+                        <div key={index} className="create-event-chip flex items-center rounded-full px-3 py-1 border border-gray-200">
+                          <span className="text-sm font-medium">{attendee}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveAttendee(index)}
-                            className="ml-2 hover:opacity-80"
-                            style={{ color: "#374151" }}
+                            className="ml-2 hover:opacity-80 rounded p-0.5"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -1608,7 +1646,7 @@ export default function CalendarsPage() {
                   )}
                 </div>
 
-                <div className="flex justify-end gap-3 mt-6">
+                <div className="flex justify-end gap-3 mt-6 pt-2 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => {
@@ -1616,14 +1654,13 @@ export default function CalendarsPage() {
                       setEventClientId("")
                       setEventAttendeePhones("")
                     }}
-                    className="px-4 py-2 rounded-md hover:bg-gray-400 transition-colors font-medium border-2 border-gray-600"
-                    style={{ backgroundColor: "#d1d5db", color: "#000" }}
+                    className="px-4 py-2 rounded-md font-medium bg-gray-200 text-gray-800 border border-gray-300 hover:bg-gray-300 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-medium"
                   >
                     Create Event
                   </button>

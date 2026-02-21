@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { getUserInitials } from "@/lib/avatar-initials"
 import {
   Settings,
   User,
@@ -36,7 +37,184 @@ import {
   XCircle,
   Users,
   Pencil,
+  FileText,
 } from "lucide-react"
+
+const EMAIL_TEMPLATE_LABELS: Record<string, string> = {
+  appointment_reminder: "Appointment reminder (24h before)",
+  booking_confirmation: "Booking confirmation (when a time slot is accepted)",
+  time_slot_request: "Time slot request (notify calendar owner)",
+  workspace_invite: "Workspace invite (join link by email)",
+}
+
+function EmailTemplatesCard() {
+  const [templates, setTemplates] = useState<Array<{ id: string; workspace_id: string | null; name: string; subject: string; body_html: string; body_text: string }>>([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState<typeof templates[0] | null>(null)
+  const [editSubject, setEditSubject] = useState("")
+  const [editBodyHtml, setEditBodyHtml] = useState("")
+  const [editBodyText, setEditBodyText] = useState("")
+  const [saveLoading, setSaveLoading] = useState(false)
+  const [saveError, setSaveError] = useState("")
+
+  const load = () => {
+    setLoading(true)
+    fetch("/api/email-templates")
+      .then((r) => (r.ok ? r.json() : { templates: [] }))
+      .then((data) => {
+        setTemplates(Array.isArray(data.templates) ? data.templates : [])
+      })
+      .catch(() => setTemplates([]))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  const openEdit = (t: (typeof templates)[0]) => {
+    setEditing(t)
+    setEditSubject(t.subject)
+    setEditBodyHtml(t.body_html)
+    setEditBodyText(t.body_text)
+    setSaveError("")
+  }
+
+  const handleSaveTemplate = async () => {
+    if (!editing) return
+    setSaveError("")
+    setSaveLoading(true)
+    try {
+      const res = await fetch(`/api/email-templates/${editing.name}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: editSubject,
+          body_html: editBodyHtml,
+          body_text: editBodyText,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setSaveError(data.error ?? "Failed to save")
+        return
+      }
+      setEditing(null)
+      load()
+    } finally {
+      setSaveLoading(false)
+    }
+  }
+
+  return (
+    <Card className="border-white/20 bg-white/5">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center">
+          <FileText className="h-5 w-5 mr-2" />
+          Email templates
+        </CardTitle>
+        <CardDescription className="text-white/70">
+          Customize subject and body for appointment reminders, booking confirmations, time-slot requests, and workspace invites. Use placeholders like {"{{title}}"}, {"{{date}}"}, {"{{time}}"}, {"{{clientName}}"}, {"{{requesterName}}"}, {"{{joinUrl}}"}, {"{{workspaceName}}"}.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <p className="text-white/60 text-sm">Loading templates...</p>
+        ) : templates.length === 0 ? (
+          <p className="text-white/60 text-sm">No templates found.</p>
+        ) : (
+          <ul className="space-y-2">
+            {templates.map((t) => (
+              <li key={t.id} className="flex items-center justify-between rounded-lg border border-white/20 bg-white/5 p-3">
+                <div>
+                  <p className="font-medium text-white">{EMAIL_TEMPLATE_LABELS[t.name] ?? t.name}</p>
+                  <p className="text-sm text-white/60 truncate max-w-md">{t.subject}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openEdit(t)}
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                >
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent className="sm:max-w-2xl bg-black/95 border-white/20 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {editing ? EMAIL_TEMPLATE_LABELS[editing.name] ?? editing.name : "Edit template"}
+            </DialogTitle>
+            <DialogDescription className="text-white/70">
+              Subject and body support placeholders: {"{{title}}"}, {"{{date}}"}, {"{{time}}"}, {"{{location}}"}, {"{{clientName}}"}, {"{{requesterName}}"}, {"{{message}}"}, {"{{joinUrl}}"}, {"{{workspaceName}}"}
+            </DialogDescription>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label className="text-white">Subject</Label>
+                <Input
+                  value={editSubject}
+                  onChange={(e) => setEditSubject(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white"
+                  placeholder="Subject line"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-white">Body (HTML)</Label>
+                <textarea
+                  value={editBodyHtml}
+                  onChange={(e) => setEditBodyHtml(e.target.value)}
+                  rows={8}
+                  className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-white placeholder:text-white/50 text-sm font-mono"
+                  placeholder="HTML content"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-white">Body (plain text fallback)</Label>
+                <textarea
+                  value={editBodyText}
+                  onChange={(e) => setEditBodyText(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-white placeholder:text-white/50 text-sm font-mono"
+                  placeholder="Plain text"
+                />
+              </div>
+              {saveError && <p className="text-red-400 text-sm">{saveError}</p>}
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditing(null)}
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+            >
+              Cancel
+            </Button>
+            {editing && (
+              <Button
+                type="button"
+                onClick={handleSaveTemplate}
+                disabled={saveLoading}
+                className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+              >
+                {saveLoading ? "Saving..." : "Save"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  )
+}
 
 function ChangePasswordCard() {
   const [codeSent, setCodeSent] = useState(false)
@@ -247,6 +425,10 @@ export default function SettingsPage() {
     shareAvailability: true,
   })
 
+  // Privacy save
+  const [privacySaveLoading, setPrivacySaveLoading] = useState(false)
+  const [privacySaveSuccess, setPrivacySaveSuccess] = useState(false)
+
   // Load profile on mount
   useEffect(() => {
     let cancelled = false
@@ -260,6 +442,15 @@ export default function SettingsPage() {
           email: data.email ?? "",
           phone: data.phone ?? "",
         })
+        if (data.privacy) {
+          setPrivacy({
+            profileVisibility: data.privacy.profileVisibility ?? "team",
+            showEmail: data.privacy.showEmail !== false,
+            showPhone: data.privacy.showPhone !== false,
+            allowTimeSlotRequests: data.privacy.allowTimeSlotRequests !== false,
+            shareAvailability: data.privacy.shareAvailability !== false,
+          })
+        }
       })
       .finally(() => { if (!cancelled) setProfileLoaded(true) })
     return () => { cancelled = true }
@@ -459,6 +650,10 @@ export default function SettingsPage() {
               <Users className="h-4 w-4 mr-2" />
               Team
             </TabsTrigger>
+            <TabsTrigger value="email" className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70">
+              <FileText className="h-4 w-4 mr-2" />
+              Email templates
+            </TabsTrigger>
           </TabsList>
 
           {/* Profile Tab */}
@@ -478,12 +673,12 @@ export default function SettingsPage() {
                   <p className="text-white/60 text-sm">Loading profile...</p>
                 ) : (
                   <>
-                {/* Avatar */}
+                {/* Avatar - initials until user changes photo */}
                 <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20 border-2 border-white/20">
                     <AvatarImage src="" alt="Profile" />
-                    <AvatarFallback className="bg-white/10 text-white text-xl">
-                      {profile.firstName?.[0] || profile.lastName?.[0] || "U"}
+                    <AvatarFallback className="bg-white/10 text-white text-xl font-medium">
+                      {getUserInitials(profile.firstName, profile.lastName, profile.email)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -954,6 +1149,32 @@ export default function SettingsPage() {
                     />
                   </div>
                 </div>
+                <div className="pt-4">
+                  <Button
+                    onClick={async () => {
+                      setPrivacySaveLoading(true)
+                      setPrivacySaveSuccess(false)
+                      try {
+                        const res = await fetch("/api/profile/privacy", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(privacy),
+                        })
+                        const data = await res.json()
+                        if (res.ok) {
+                          setPrivacySaveSuccess(true)
+                          setTimeout(() => setPrivacySaveSuccess(false), 3000)
+                        }
+                      } finally {
+                        setPrivacySaveLoading(false)
+                      }
+                    }}
+                    disabled={privacySaveLoading}
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                  >
+                    {privacySaveLoading ? "Saving..." : privacySaveSuccess ? "Saved" : "Save privacy settings"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -979,6 +1200,11 @@ export default function SettingsPage() {
                 </Link>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Email templates Tab */}
+          <TabsContent value="email" className="space-y-6">
+            <EmailTemplatesCard />
           </TabsContent>
         </Tabs>
 

@@ -11,6 +11,8 @@ interface Teammate {
   id: string
   name: string
   email: string
+  shareAvailability?: boolean
+  allowTimeSlotRequests?: boolean
   events: Array<{
     id: string
     title: string
@@ -111,6 +113,21 @@ export function TeammateAvailabilityView({
 
   if (!teammate) return null
 
+  if (teammate.shareAvailability === false) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-[420px] bg-white/20 backdrop-blur-lg border-white/30">
+          <DialogHeader>
+            <DialogTitle className="text-white">{teammate.name}&apos;s Availability</DialogTitle>
+          </DialogHeader>
+          <p className="text-white/80 text-sm py-4">
+            This teammate has chosen not to share their availability.
+          </p>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
   const weekDates = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   }, [weekStart])
@@ -130,7 +147,10 @@ export function TeammateAvailabilityView({
     })
   }, [teammate.events, weekDates])
 
+  const canRequestSlots = teammate.allowTimeSlotRequests !== false
+
   const handleSlotClick = (dateStr: string, slot: { start: string; end: string }) => {
+    if (!canRequestSlots) return
     setSelectedSlot({ date: dateStr, start: slot.start, end: slot.end })
     setShowRequestModal(true)
   }
@@ -241,7 +261,12 @@ export function TeammateAvailabilityView({
                             key={i}
                             type="button"
                             onClick={() => handleSlotClick(dateStr, slot)}
-                            className="w-full text-left bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 rounded px-2 py-1.5 transition-colors"
+                            disabled={!canRequestSlots}
+                            className={`w-full text-left rounded px-2 py-1.5 transition-colors ${
+                              canRequestSlots
+                                ? "bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 cursor-pointer"
+                                : "bg-white/10 border border-white/20 cursor-default opacity-90"
+                            }`}
                           >
                             <div className="text-white text-xs font-medium truncate">
                               {slot.start} – {slot.end}
@@ -260,7 +285,9 @@ export function TeammateAvailabilityView({
           </div>
 
           <p className="text-white/60 text-xs mt-2">
-            Click an available slot to request a meeting. Busy times (events and personal blocks) are excluded.
+            {canRequestSlots
+              ? "Click an available slot to request a meeting. Busy times (events and personal blocks) are excluded."
+              : "View only. This teammate does not accept time slot requests."}
           </p>
 
           <div className="flex justify-end gap-2 mt-4">
