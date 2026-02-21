@@ -1,0 +1,159 @@
+/**
+ * POST /api/calendar/time-slot-request
+ * When a teammate sends a time slot request, notify the calendar owner (teammate) by SMS
+ * to the phone number on file. Message: "[Requester name] has requested a time slot at [timeslot]."
+ */
+import { NextResponse } from "next/server"
+import Twilio from "twilio"
+import { createClient } from "@/lib/supabase/server"
+import { getWorkspaceForUser, canSendSms, recordSmsSent } from "@/lib/workspace"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase"
+import { validatePhone } from "@/lib/sms-utils"
+
+export async function POST(request: Request) {
+  try {
+    if (!isSupabaseConfigured() || !supabase) {
+      return NextResponse.json({ error: "Not configured" }, { status: 503 })
+    }
+
+    const authClient = await createClient()
+    const {
+      data: { user },
+    } = await authClient.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const requesterMembership = await getWorkspaceForUser(user.id)
+    if (!requesterMembership) {
+      return NextResponse.json({ error: "You are not in a workspace" }, { status: 403 })
+    }
+
+    let body: {
+      teammateId?: string
+      date?: string
+      startTime?: string
+      endTime?: string
+      title?: string
+      message?: string
+    }
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+    }
+
+    const teammateId = typeof body.teammateId === "string" ? body.teammateId.trim() : ""
+    const date = typeof body.date === "string" ? body.date.trim() : ""
+    const startTime = typeof body.startTime === "string" ? body.startTime.trim() : ""
+    const endTime = typeof body.endTime === "string" ? body.endTime.trim() : ""
+    const title = typeof body.title === "string" ? body.title.trim() : ""
+
+    if (!teammateId) {
+      return NextResponse.json({ error: "teammateId is required" }, { status: 400 })
+    }
+    if (!date || !startTime || !endTime) {
+      return NextResponse.json({ error: "date, startTime, and endTime are required" }, { status: 400 })
+    }
+
+    // Requester and teammate must be in the same workspace
+    const { data: teammateMembership } = await supabase
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("user_id", teammateId)
+      .eq("workspace_id", requesterMembership.workspace_id)
+      .single()
+
+    if (!teammateMembership) {
+      return NextResponse.json({ error: "Teammate not found in your workspace" }, { status: 404 })
+    }
+
+    const { data: teammateUser } = await supabase.auth.admin.getUserById(teammateId)
+    const phone = teammateUser?.user?.user_metadata?.phone
+    const teammatePhone = typeof phone === "string" ? phone.trim() : ""
+
+    if (!teammatePhone) {
+      return NextResponse.json({
+        ok: true,
+        smsSent: false,
+        error: "Teammate has no phone number on file",
+      })
+    }
+
+    const phoneValidation = validatePhone(teammatePhone)
+    if (!phoneValidation.valid) {
+      return NextResponse.json({
+        ok: true,
+        smsSent: false,
+        error: "Teammate phone on file is invalid",
+      })
+    }
+
+    const workspaceId = requesterMembership.workspace_id
+    const smsCheck = await canSendSms(workspaceId)
+    if (!smsCheck.ok) {
+      return NextResponse.json({ error: smsCheck.error ?? "Cannot send SMS" }, { status: 403 })
+    }
+
+    const meta = user.user_metadata ?? {}
+    const firstName = meta.first_name ?? meta.firstName ?? ""
+    const lastName = meta.last_name ?? meta.lastName ?? ""
+    const requesterName =
+      [firstName, lastName].filter(Boolean).join(" ") ||
+      user.email?.split("@")[0] ||
+      "A teammate"
+
+    const dateFormatted = date ? new Date(date + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : date
+    const timeSlot = `${dateFormatted}, ${startTime}–${endTime}`
+    const messageBody = `${requesterName} has requested a time slot on your calendar: ${timeSlot}.${title ? ` "${title}"` : ""}`
+
+    const accountSid = process.env.TWILIO_ACCOUNT_SID
+    const authToken = process.env.TWILIO_AUTH_TOKEN
+    const fromNumber = process.env.TWILIO_PHONE_NUMBER
+    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
+
+    if (!accountSid || !authToken) {
+      return NextResponse.json({ error: "SMS is not configured" }, { status: 500 })
+    }
+    if (!messagingServiceSid && !fromNumber) {
+      return NextResponse.json({ error: "Set TWILIO_PHONE_NUMBER or TWILIO_MESSAGING_SERVICE_SID" }, { status: 500 })
+    }
+
+    const twilioClient = Twilio(accountSid, authToken)
+    const params: Record<string, string> = {
+      to: teammatePhone,
+      body: messageBody,
+    }
+    if (messagingServiceSid) {
+      params.messagingServiceSid = messagingServiceSid
+    } else {
+      params.from = fromNumber!
+    }
+    const webhookBase = process.env.TWILIO_WEBHOOK_BASE_URL
+    if (webhookBase) {
+      params.statusCallback = `${webhookBase}/api/twilio/webhook`
+    }
+
+    const twilioMessage = await twilioClient.messages.create(params)
+    const fromPhone = fromNumber ?? "(Messaging Service)"
+
+    await recordSmsSent(workspaceId)
+    await supabase.from("sms_logs").insert({
+      workspace_id: workspaceId,
+      to_phone: teammatePhone,
+      from_phone: fromPhone,
+      body: messageBody,
+      provider_message_id: twilioMessage.sid,
+    })
+
+    return NextResponse.json({
+      ok: true,
+      smsSent: true,
+      sid: twilioMessage.sid,
+    })
+  } catch (err) {
+    console.error("[api/calendar/time-slot-request] Error:", err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to send notification" },
+      { status: 500 }
+    )
+  }
+}

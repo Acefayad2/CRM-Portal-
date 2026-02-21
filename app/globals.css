@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated color palette for SFS brand - indigo/blue theme */
+  /* Pantheon brand - indigo/blue theme */
   --background: oklch(0.99 0.005 240); /* Off-white background */
   --foreground: oklch(0.25 0.08 240); /* Indigo-800 for main text */
   --card: oklch(1 0 0); /* White for card backgrounds */
@@ -211,7 +211,7 @@
 /* Override CSS variables for portal pages to remove white backgrounds */
 .portal-sidebar-wrapper ~ div main {
   --background: transparent !important;
-  --card: rgba(255, 255, 255, 0.1) !important;
+  --card: transparent !important;
   --card-foreground: rgba(255, 255, 255, 0.95) !important;
   --input: rgba(255, 255, 255, 0.1) !important;
   --muted: rgba(255, 255, 255, 0.1) !important;
@@ -251,11 +251,10 @@
   background: transparent !important;
 }
 
-/* But preserve card backgrounds */
+/* Card backgrounds - transparent */
 .portal-sidebar-wrapper ~ div main .bg-card,
 .portal-sidebar-wrapper ~ div main [data-slot="card"] {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px) !important;
+  background-color: transparent !important;
 }
 
 .portal-sidebar-wrapper ~ div main .bg-muted,
@@ -290,11 +289,10 @@
   background-color: transparent !important;
 }
 
-/* But allow specific elements that need backgrounds */
+/* Card backgrounds - transparent */
 .portal-sidebar-wrapper ~ div main [data-slot="card"],
 .portal-sidebar-wrapper ~ div main [class*="Card"] {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px) !important;
+  background: transparent !important;
 }
 
 .portal-sidebar-wrapper ~ div main [data-slot="input"],
@@ -314,11 +312,10 @@
   border-color: rgba(255, 255, 255, 0.3) !important;
 }
 
-/* Portal cards - glassmorphism effect */
+/* Portal cards - transparent */
 .portal-sidebar-wrapper ~ div main [class*="card"],
 .portal-sidebar-wrapper ~ div main [class*="Card"] {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px) !important;
+  background: transparent !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
@@ -419,13 +416,13 @@
   color: rgba(255, 255, 255, 0.95) !important;
 }
 
-/* Remove white backgrounds from cards and containers */
+/* Card and container backgrounds - transparent, no blur */
 .portal-sidebar-wrapper ~ div main .bg-background:not(button):not([role="button"]),
 .portal-sidebar-wrapper ~ div main [class*="bg-white"]:not(button):not([role="button"]),
 .portal-sidebar-wrapper ~ div main [data-slot="card"].bg-card,
 .portal-sidebar-wrapper ~ div main [data-slot="card"] {
   background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px) !important;
+  backdrop-filter: none !important;
   color: rgba(255, 255, 255, 0.95) !important;
 }
 

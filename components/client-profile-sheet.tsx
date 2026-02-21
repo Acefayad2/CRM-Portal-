@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { useContactLogs } from "@/contexts/contact-logs-context"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
@@ -10,30 +11,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Phone, Mail, MessageSquare, Calendar, FileText, Upload, Download, Clock, Tag, User } from "lucide-react"
+import { Phone, Mail, MessageSquare, Calendar, FileText, Upload, Download, Clock, Tag, User, Share2 } from "lucide-react"
 import { type Client, statusOptions, stageOptions } from "@/lib/crm-data"
 
 interface ClientProfileSheetProps {
   client: Client | null
   isOpen: boolean
   onClose: () => void
+  onSendClient?: () => void
 }
 
-export function ClientProfileSheet({ client, isOpen, onClose }: ClientProfileSheetProps) {
+export function ClientProfileSheet({ client, isOpen, onClose, onSendClient }: ClientProfileSheetProps) {
+  const { logContact, getLastCall, getClientContactHistory } = useContactLogs()
   const [activeTab, setActiveTab] = useState("overview")
   const [notes, setNotes] = useState(client?.notes || "")
 
   if (!client) return null
 
+  const clientName = `${client.firstName} ${client.lastName}`
+  const lastCalled = getLastCall(client.id)
+  const contactHistoryFromLogs = getClientContactHistory(client.id)
+
   const handleAction = (action: string) => {
-    console.log(`${action} action for ${client.firstName} ${client.lastName}`)
+    if (action === "call" || action === "text" || action === "email") {
+      logContact(client.id, clientName, action)
+    }
 
     if (action === "call") {
       window.open(`tel:${client.phone}`)
     } else if (action === "text") {
       window.open(`sms:${client.phone}`)
     } else if (action === "email") {
-      window.open(`mailto:${client.email}?subject=SFS%20Follow-up`)
+      window.open(`mailto:${client.email}?subject=Pantheon%20Follow-up`)
     }
   }
 
@@ -52,8 +61,7 @@ export function ClientProfileSheet({ client, isOpen, onClose }: ClientProfileShe
           <div className="flex items-center space-x-4">
             <Avatar className="h-12 w-12">
               <AvatarFallback>
-                {client.firstName[0]}
-                {client.lastName[0]}
+                {(client.firstName?.[0] ?? "") + (client.lastName?.[0] ?? "") || "?"}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
@@ -119,7 +127,7 @@ export function ClientProfileSheet({ client, isOpen, onClose }: ClientProfileShe
           </div>
 
           {/* Action Buttons */}
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => handleAction("call")}>
               <Phone className="h-4 w-4 mr-2" />
               Call
@@ -132,6 +140,12 @@ export function ClientProfileSheet({ client, isOpen, onClose }: ClientProfileShe
               <Mail className="h-4 w-4 mr-2" />
               Email
             </Button>
+            {onSendClient && (
+              <Button size="sm" variant="outline" onClick={onSendClient}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share with teammate
+              </Button>
+            )}
             <Button size="sm" variant="outline">
               <Calendar className="h-4 w-4 mr-2" />
               Schedule
@@ -169,6 +183,10 @@ export function ClientProfileSheet({ client, isOpen, onClose }: ClientProfileShe
                   <div>
                     <Label>Last Contact</Label>
                     <p className="text-sm text-muted-foreground">{client.lastContact || "Never"}</p>
+                  </div>
+                  <div>
+                    <Label>Last Called</Label>
+                    <p className="text-sm text-muted-foreground">{lastCalled || "Never"}</p>
                   </div>
                   <div>
                     <Label>Next Appointment</Label>
@@ -284,28 +302,31 @@ export function ClientProfileSheet({ client, isOpen, onClose }: ClientProfileShe
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {client.contactHistory.length === 0 ? (
+                {client.contactHistory.length === 0 && contactHistoryFromLogs.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No contact history recorded</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {client.contactHistory.map((contact) => (
+                    {[...contactHistoryFromLogs, ...client.contactHistory]
+                      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                      .slice(0, 20)
+                      .map((contact) => (
                     <div key={contact.id} className="flex items-start space-x-3 pb-4 border-b last:border-b-0">
                       <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
-                        {contact.type === "call" && <Phone className="h-4 w-4 text-accent" />}
-                        {contact.type === "email" && <Mail className="h-4 w-4 text-accent" />}
-                        {contact.type === "text" && <MessageSquare className="h-4 w-4 text-accent" />}
-                        {contact.type === "meeting" && <Calendar className="h-4 w-4 text-accent" />}
+                        {("action" in contact ? contact.action : contact.type) === "call" && <Phone className="h-4 w-4 text-accent" />}
+                        {("action" in contact ? contact.action : contact.type) === "email" && <Mail className="h-4 w-4 text-accent" />}
+                        {("action" in contact ? contact.action : contact.type) === "text" && <MessageSquare className="h-4 w-4 text-accent" />}
+                        {"type" in contact && contact.type === "meeting" && <Calendar className="h-4 w-4 text-accent" />}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <p className="font-medium text-sm capitalize">{contact.type}</p>
+                          <p className="font-medium text-sm capitalize">{("action" in contact ? contact.action : contact.type) as string}</p>
                           <p className="text-xs text-muted-foreground">{contact.timestamp}</p>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">{contact.outcome}</p>
-                        {contact.notes && <p className="text-xs text-muted-foreground mt-2 italic">{contact.notes}</p>}
+                        {"notes" in contact && contact.notes && <p className="text-xs text-muted-foreground mt-2 italic">{contact.notes}</p>}
                       </div>
                     </div>
                   ))}

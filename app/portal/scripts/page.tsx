@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { PortalLayout } from "@/components/portal-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScriptCard } from "@/components/script-card"
 import { ScriptViewerSheet } from "@/components/script-viewer-sheet"
+import { AddScriptDialog } from "@/components/add-script-dialog"
+import { SendScriptToClientsDialog } from "@/components/send-script-to-clients-dialog"
 import {
   Search,
   Plus,
@@ -23,11 +25,86 @@ import {
 } from "lucide-react"
 import { mockScripts, scriptCategories, type Script } from "@/lib/scripts-data"
 
+const STORAGE_KEY = "pantheon-scripts"
+
+function loadScriptsFromStorage(): Script[] {
+  if (typeof window === "undefined") return mockScripts
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (!stored) return mockScripts
+    const parsed = JSON.parse(stored) as Script[]
+    return Array.isArray(parsed) ? parsed : mockScripts
+  } catch {
+    return mockScripts
+  }
+}
+
 export default function ScriptsPage() {
+  const [scripts, setScripts] = useState<Script[]>(mockScripts)
+  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [selectedScript, setSelectedScript] = useState<Script | null>(null)
   const [viewerOpen, setViewerOpen] = useState(false)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [sendToClientsOpen, setSendToClientsOpen] = useState(false)
+
+  const fetchScripts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/scripts")
+      if (res.ok) {
+        const { scripts: data } = await res.json()
+        if (Array.isArray(data)) setScripts(data)
+        return
+      }
+    } catch {
+      // fall through
+    }
+    setScripts(loadScriptsFromStorage())
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    fetchScripts().then(() => mounted && setIsLoading(false))
+    return () => { mounted = false }
+  }, [fetchScripts])
+
+  useEffect(() => {
+    if (scripts.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(scripts))
+      } catch {
+        // ignore
+      }
+    }
+  }, [scripts])
+
+  const handleAddScript = async (script: Script) => {
+    try {
+      const res = await fetch("/api/scripts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: script.title,
+          category: script.category,
+          content: script.content,
+          tags: script.tags,
+          author: script.author,
+          isTemplate: script.isTemplate,
+          usageCount: script.usageCount ?? 0,
+        }),
+      })
+      if (res.ok) {
+        const { script: created } = await res.json()
+        setScripts((prev) => [created, ...prev])
+        return
+      }
+    } catch {
+      // fall through to local
+    }
+    const newScript: Script = { ...script, id: script.id || `script-${Date.now()}` }
+    setScripts((prev) => [newScript, ...prev])
+  }
 
   const categoryIcons = {
     presentation: Presentation,
@@ -38,7 +115,7 @@ export default function ScriptsPage() {
     "follow-up": RotateCcw,
   }
 
-  const filteredScripts = mockScripts.filter((script) => {
+  const filteredScripts = scripts.filter((script) => {
     const matchesSearch =
       script.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       script.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,7 +148,7 @@ export default function ScriptsPage() {
             <h1 className="text-3xl font-bold text-foreground">Scripts Library</h1>
             <p className="text-muted-foreground">Access proven scripts for presentations, calls, and communications</p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={() => setAddDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             New Script
           </Button>
@@ -103,10 +180,10 @@ export default function ScriptsPage() {
                   className="cursor-pointer"
                   onClick={() => setSelectedCategory("all")}
                 >
-                  All Scripts ({mockScripts.length})
+                  All Scripts ({scripts.length})
                 </Badge>
                 {scriptCategories.map((category) => {
-                  const count = mockScripts.filter((s) => s.category === category.id).length
+                  const count = scripts.filter((s) => s.category === category.id).length
                   const Icon = categoryIcons[category.id as keyof typeof categoryIcons]
                   return (
                     <Badge
@@ -136,8 +213,8 @@ export default function ScriptsPage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {scriptCategories.map((category) => {
                 const Icon = categoryIcons[category.id as keyof typeof categoryIcons]
-                const count = mockScripts.filter((s) => s.category === category.id).length
-                const totalUsage = mockScripts
+                const count = scripts.filter((s) => s.category === category.id).length
+                const totalUsage = scripts
                   .filter((s) => s.category === category.id)
                   .reduce((sum, s) => sum + s.usageCount, 0)
 
@@ -176,7 +253,7 @@ export default function ScriptsPage() {
                     <p className="text-muted-foreground mb-4">
                       {searchQuery ? "Try adjusting your search terms" : "No scripts match the selected category"}
                     </p>
-                    <Button>
+                    <Button onClick={() => setAddDialogOpen(true)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Create New Script
                     </Button>
@@ -205,6 +282,19 @@ export default function ScriptsPage() {
           onOpenChange={setViewerOpen}
           onEdit={handleEditScript}
           onCopy={handleCopyScript}
+          onSendToClients={() => setSendToClientsOpen(true)}
+        />
+        <SendScriptToClientsDialog
+          open={sendToClientsOpen}
+          onOpenChange={setSendToClientsOpen}
+          script={selectedScript}
+          onSent={fetchScripts}
+        />
+
+        <AddScriptDialog
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          onAddScript={handleAddScript}
         />
       </div>
     </PortalLayout>

@@ -2,24 +2,39 @@
 
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Phone, Mail, MessageSquare, Calendar } from "lucide-react"
-import { mockClients, statusOptions, type Client, type ClientStatus } from "@/lib/crm-data"
+import { Phone, Mail, MessageSquare, Calendar, MoreHorizontal, Share2 } from "lucide-react"
+import { statusOptions, type Client, type ClientStatus } from "@/lib/crm-data"
+import { useContactLogs } from "@/contexts/contact-logs-context"
+import { useClients } from "@/contexts/clients-context"
 
 interface ClientsBoardViewProps {
   onClientSelect: (client: Client) => void
+  onSendClient?: (client: Client) => void
 }
 
-export function ClientsBoardView({ onClientSelect }: ClientsBoardViewProps) {
-  const [clients, setClients] = useState(mockClients)
+export function ClientsBoardView({ onClientSelect, onSendClient }: ClientsBoardViewProps) {
+  const { logContact } = useContactLogs()
+  const { clients, updateClient } = useClients()
+
+  const handleAction = (action: "call" | "text" | "email", client: Client) => {
+    const clientName = `${client.firstName} ${client.lastName}`
+    logContact(client.id, clientName, action)
+    if (action === "call") window.open(`tel:${client.phone}`)
+    else if (action === "text") window.open(`sms:${client.phone}`)
+    else if (action === "email") window.open(`mailto:${client.email}?subject=Pantheon%20Follow-up`)
+  }
 
   const handleStatusChange = (clientId: string, newStatus: ClientStatus) => {
-    setClients((prev) => prev.map((client) => (client.id === clientId ? { ...client, status: newStatus } : client)))
-
-    // Here you would typically send the update to your backend
-    console.log(`Client ${clientId} moved to ${newStatus}`)
+    updateClient(clientId, { status: newStatus })
   }
 
   const getStatusColor = (status: string) => {
@@ -92,16 +107,42 @@ export function ClientsBoardView({ onClientSelect }: ClientsBoardViewProps) {
                       )}
 
                       <div className="flex justify-between items-center">
-                        <div className="flex space-x-1">
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                        <div className="flex space-x-1 items-center">
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); handleAction("call", client) }}>
                             <Phone className="h-3 w-3" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); handleAction("text", client) }}>
                             <MessageSquare className="h-3 w-3" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); handleAction("email", client) }}>
                             <Mail className="h-3 w-3" />
                           </Button>
+                          {onSendClient && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => { e.stopPropagation(); onSendClient(client) }}
+                              title="Share with teammate"
+                            >
+                              <Share2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => e.stopPropagation()}>
+                                <MoreHorizontal className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {onSendClient && (
+                                <DropdownMenuItem onClick={() => onSendClient(client)}>
+                                  <Share2 className="h-3 w-3 mr-2" />
+                                  Share with teammate
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                         <span className="text-xs text-muted-foreground">{client.assignedAgent}</span>
                       </div>

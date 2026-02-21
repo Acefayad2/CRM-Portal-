@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { PortalLayout } from "@/components/portal-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,21 +12,195 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+import {
   Settings,
   User,
   Bell,
   Calendar,
   Shield,
-  Palette,
   Mail,
   Phone,
   Lock,
   Trash2,
-  Download,
   RefreshCw,
   CheckCircle2,
   XCircle,
+  Users,
+  Pencil,
 } from "lucide-react"
+
+function ChangePasswordCard() {
+  const [codeSent, setCodeSent] = useState(false)
+  const [code, setCode] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [sendLoading, setSendLoading] = useState(false)
+  const [submitLoading, setSubmitLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
+
+  const handleSendCode = async () => {
+    setError("")
+    setSendLoading(true)
+    try {
+      const res = await fetch("/api/auth/request-password-change", { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? "Failed to send code")
+        return
+      }
+      setCodeSent(true)
+    } finally {
+      setSendLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters")
+      return
+    }
+    setSubmitLoading(true)
+    try {
+      const res = await fetch("/api/auth/confirm-password-change", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim(), newPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? "Failed to change password")
+        return
+      }
+      setSuccess(true)
+      setCode("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setCodeSent(false)
+    } finally {
+      setSubmitLoading(false)
+    }
+  }
+
+  return (
+    <Card className="border-white/20 bg-white/5">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center">
+          <Lock className="h-5 w-5 mr-2" />
+          Security
+        </CardTitle>
+        <CardDescription className="text-white/70">
+          Change your password. A verification code will be sent to your registered phone via SMS (valid 5 minutes).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {success ? (
+          <div className="flex items-center gap-2 text-green-400 text-sm">
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+            Password updated. You can use your new password to sign in.
+          </div>
+        ) : (
+          <>
+            {!codeSent ? (
+              <div className="space-y-4">
+                <p className="text-white/80 text-sm">
+                  We&apos;ll send a 6-digit code to the phone number on your account. Click below to receive the code.
+                </p>
+                <Button
+                  type="button"
+                  onClick={handleSendCode}
+                  disabled={sendLoading}
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                >
+                  {sendLoading ? "Sending..." : <><Lock className="h-4 w-4 shrink-0" /> Change password</>}
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="changePwCode" className="text-white">
+                    Verification code
+                  </Label>
+                  <Input
+                    id="changePwCode"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="Enter 6-digit code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    maxLength={6}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 font-mono text-lg tracking-widest"
+                  />
+                  <p className="text-white/50 text-xs">Code expires in 5 minutes. Not received? <button type="button" onClick={handleSendCode} disabled={sendLoading} className="text-blue-300 hover:underline">Resend</button></p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword" className="text-white">
+                    New password
+                  </Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-white">
+                    Confirm new password
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                  />
+                </div>
+                {error && <p className="text-red-400 text-sm">{error}</p>}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => { setCodeSent(false); setCode(""); setNewPassword(""); setConfirmPassword(""); setError(""); }}
+                    className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={!code.trim() || code.length !== 6 || !newPassword || !confirmPassword || submitLoading}
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                  >
+                    {submitLoading ? "Updating..." : <><Lock className="h-4 w-4 shrink-0" /> Change password</>}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function SettingsPage() {
   // Profile state
@@ -34,9 +209,14 @@ export default function SettingsPage() {
     lastName: "",
     email: "",
     phone: "",
-    title: "",
-    bio: "",
   })
+  const [profileLoaded, setProfileLoaded] = useState(false)
+  const [profileVerificationStep, setProfileVerificationStep] = useState<"idle" | "code_sent">("idle")
+  const [profileVerificationCode, setProfileVerificationCode] = useState("")
+  const [profileSendCodeLoading, setProfileSendCodeLoading] = useState(false)
+  const [profileSaveLoading, setProfileSaveLoading] = useState(false)
+  const [profileError, setProfileError] = useState("")
+  const [profileSuccess, setProfileSuccess] = useState(false)
 
   // Notification preferences
   const [notifications, setNotifications] = useState({
@@ -46,15 +226,17 @@ export default function SettingsPage() {
     followUpReminders: true,
     teamUpdates: true,
     clientUpdates: false,
-    marketingEmails: false,
   })
 
-  // Calendar integrations
+  // Calendar integrations (Google status loaded from API; feed URL for mobile/Apple/any app)
   const [calendarIntegrations, setCalendarIntegrations] = useState({
     googleCalendar: false,
     appleCalendar: false,
-    syncFrequency: "realtime", // realtime, hourly, daily
+    syncFrequency: "realtime",
   })
+  const [calendarFeedUrl, setCalendarFeedUrl] = useState("")
+  const [calendarFeedLoading, setCalendarFeedLoading] = useState(false)
+  const [calendarDisconnectLoading, setCalendarDisconnectLoading] = useState(false)
 
   // Privacy settings
   const [privacy, setPrivacy] = useState({
@@ -65,51 +247,186 @@ export default function SettingsPage() {
     shareAvailability: true,
   })
 
-  // Appearance settings
-  const [appearance, setAppearance] = useState({
-    theme: "system", // light, dark, system
-    defaultView: "week", // day, week, month
-    compactMode: false,
-    showWeekends: true,
-  })
+  // Load profile on mount
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return
+        setProfile({
+          firstName: data.firstName ?? "",
+          lastName: data.lastName ?? "",
+          email: data.email ?? "",
+          phone: data.phone ?? "",
+        })
+      })
+      .finally(() => { if (!cancelled) setProfileLoaded(true) })
+    return () => { cancelled = true }
+  }, [])
 
-  const handleProfileUpdate = () => {
-    // TODO: Implement profile update API call
-    alert("Profile updated successfully!")
+  const handleProfileSendCode = async () => {
+    setProfileError("")
+    setProfileSendCodeLoading(true)
+    try {
+      const res = await fetch("/api/auth/request-profile-verification-code", { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) {
+        setProfileError(data.error ?? "Failed to send code")
+        return
+      }
+      setProfileVerificationStep("code_sent")
+    } finally {
+      setProfileSendCodeLoading(false)
+    }
   }
 
+  const handleProfileUpdate = async () => {
+    setProfileError("")
+    if (!profileVerificationCode.trim() || profileVerificationCode.length !== 6) {
+      setProfileError("Enter the 6-digit code sent to your phone")
+      return
+    }
+    setProfileSaveLoading(true)
+    try {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: profileVerificationCode.trim(),
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          email: profile.email,
+          phone: profile.phone,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setProfileError(data.error ?? "Failed to save")
+        return
+      }
+      setProfileSuccess(true)
+      setProfileVerificationStep("idle")
+      setProfileVerificationCode("")
+      setTimeout(() => setProfileSuccess(false), 3000)
+    } finally {
+      setProfileSaveLoading(false)
+    }
+  }
+
+  // Load calendar feed URL and Google connection status
+  useEffect(() => {
+    let cancelled = false
+    setCalendarFeedLoading(true)
+    Promise.all([
+      fetch("/api/calendar/feed/token").then((r) => (r.ok ? r.json() : { feedUrl: null })),
+      fetch("/api/calendar/google/status").then((r) => (r.ok ? r.json() : { connected: false })),
+    ])
+      .then(([feedData, statusData]) => {
+        if (cancelled) return
+        if (feedData?.feedUrl) setCalendarFeedUrl(feedData.feedUrl)
+        setCalendarIntegrations((prev) => ({ ...prev, googleCalendar: !!statusData?.connected }))
+      })
+      .catch(() => {
+        if (!cancelled) setCalendarIntegrations((prev) => ({ ...prev, googleCalendar: false }))
+      })
+      .finally(() => {
+        if (!cancelled) setCalendarFeedLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  // After redirect from Google OAuth, show success
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("google") === "connected") {
+      setCalendarIntegrations((prev) => ({ ...prev, googleCalendar: true }))
+      window.history.replaceState({}, "", window.location.pathname + "?tab=calendar")
+    }
+  }, [])
+
   const handleConnectGoogle = () => {
-    // TODO: Implement Google Calendar OAuth
-    setCalendarIntegrations({ ...calendarIntegrations, googleCalendar: true })
-    alert("Google Calendar connected successfully!")
+    window.location.href = "/api/calendar/google/connect"
   }
 
   const handleConnectApple = () => {
-    // TODO: Implement Apple Calendar integration
-    setCalendarIntegrations({ ...calendarIntegrations, appleCalendar: true })
-    alert("Apple Calendar connected successfully!")
+    // Apple Calendar: subscribe via the feed URL below
+    alert("Use the \"Subscribe with any calendar app\" URL below in Apple Calendar: File → New Calendar Subscription, then paste the URL. Your events will sync automatically.")
   }
 
-  const handleDisconnectGoogle = () => {
-    setCalendarIntegrations({ ...calendarIntegrations, googleCalendar: false })
-    alert("Google Calendar disconnected.")
+  const handleDisconnectGoogle = async () => {
+    setCalendarDisconnectLoading(true)
+    try {
+      const res = await fetch("/api/calendar/google/disconnect", { method: "POST" })
+      if (res.ok) {
+        setCalendarIntegrations((prev) => ({ ...prev, googleCalendar: false }))
+      }
+    } finally {
+      setCalendarDisconnectLoading(false)
+    }
   }
 
   const handleDisconnectApple = () => {
-    setCalendarIntegrations({ ...calendarIntegrations, appleCalendar: false })
-    alert("Apple Calendar disconnected.")
+    setCalendarIntegrations((prev) => ({ ...prev, appleCalendar: false }))
   }
 
-  const handleExportData = () => {
-    // TODO: Implement data export
-    alert("Data export initiated. You will receive an email when it's ready.")
-  }
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteStep, setDeleteStep] = useState<"idle" | "code_sent">("idle")
+  const [deleteCode, setDeleteCode] = useState("")
+  const [deleteSendLoading, setDeleteSendLoading] = useState(false)
+  const [deleteConfirmLoading, setDeleteConfirmLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState("")
+  const router = useRouter()
 
-  const handleDeleteAccount = () => {
-    if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-      // TODO: Implement account deletion
-      alert("Account deletion requested. You will receive a confirmation email.")
+  const handleRequestDeleteCode = async () => {
+    setDeleteError("")
+    setDeleteSendLoading(true)
+    try {
+      const res = await fetch("/api/auth/request-delete-account-code", { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) {
+        setDeleteError(data.error ?? "Failed to send code")
+        return
+      }
+      setDeleteStep("code_sent")
+    } finally {
+      setDeleteSendLoading(false)
     }
+  }
+
+  const handleConfirmDeleteAccount = async () => {
+    if (!deleteCode.trim() || deleteCode.length !== 6) {
+      setDeleteError("Enter the 6-digit code sent to your phone")
+      return
+    }
+    setDeleteError("")
+    setDeleteConfirmLoading(true)
+    try {
+      const res = await fetch("/api/auth/confirm-delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: deleteCode.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setDeleteError(data.error ?? "Failed to delete account")
+        return
+      }
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      setDeleteDialogOpen(false)
+      router.push("/login?message=account_deleted")
+    } finally {
+      setDeleteConfirmLoading(false)
+    }
+  }
+
+  const closeDeleteDialog = () => {
+    setDeleteDialogOpen(false)
+    setDeleteStep("idle")
+    setDeleteCode("")
+    setDeleteError("")
   }
 
   return (
@@ -138,25 +455,29 @@ export default function SettingsPage() {
               <Shield className="h-4 w-4 mr-2" />
               Privacy
             </TabsTrigger>
-            <TabsTrigger value="appearance" className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70">
-              <Palette className="h-4 w-4 mr-2" />
-              Appearance
+            <TabsTrigger value="team" className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70">
+              <Users className="h-4 w-4 mr-2" />
+              Team
             </TabsTrigger>
           </TabsList>
 
           {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-6">
-            <Card className="border-white/20 bg-white/5 backdrop-blur-sm">
+            <Card className="border-white/20 bg-white/5">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <User className="h-5 w-5 mr-2" />
                   Profile Information
                 </CardTitle>
                 <CardDescription className="text-white/70">
-                  Update your personal information and profile details
+                  Update your personal information. Changes must be verified by text message (code sent to your phone).
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {!profileLoaded ? (
+                  <p className="text-white/60 text-sm">Loading profile...</p>
+                ) : (
+                  <>
                 {/* Avatar */}
                 <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20 border-2 border-white/20">
@@ -229,96 +550,88 @@ export default function SettingsPage() {
                       placeholder="+1 (555) 000-0000"
                     />
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="title" className="text-white">
-                      Job Title
+                </div>
+
+                {/* Verification required to save */}
+                <Separator className="bg-white/10" />
+                {profileSuccess ? (
+                  <div className="flex items-center gap-2 text-green-400 text-sm">
+                    <CheckCircle2 className="h-5 w-5 shrink-0" />
+                    Profile saved successfully.
+                  </div>
+                ) : profileVerificationStep === "idle" ? (
+                  <div className="space-y-2">
+                    <p className="text-white/80 text-sm">
+                      To save changes, we&apos;ll send a verification code to your phone.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={handleProfileSendCode}
+                      disabled={profileSendCodeLoading}
+                      className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                    >
+                      {profileSendCodeLoading ? (
+                        "Sending..."
+                      ) : (
+                        <>
+                          <Pencil className="h-4 w-4 shrink-0" />
+                          Edit
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Label htmlFor="profileCode" className="text-white text-sm">
+                      Verification code (sent to your phone)
                     </Label>
                     <Input
-                      id="title"
-                      value={profile.title}
-                      onChange={(e) => setProfile({ ...profile, title: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                      placeholder="Insurance Agent"
+                      id="profileCode"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="Enter 6-digit code"
+                      value={profileVerificationCode}
+                      onChange={(e) => setProfileVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      maxLength={6}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 font-mono text-lg tracking-widest w-40"
                     />
+                    <p className="text-white/50 text-xs">
+                      Code expires in 5 minutes. <button type="button" onClick={handleProfileSendCode} disabled={profileSendCodeLoading} className="text-blue-300 hover:underline">Resend</button>
+                    </p>
+                    {profileError && <p className="text-red-400 text-sm">{profileError}</p>}
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => { setProfileVerificationStep("idle"); setProfileVerificationCode(""); setProfileError(""); }}
+                        className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleProfileUpdate}
+                        disabled={profileVerificationCode.length !== 6 || profileSaveLoading}
+                        className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                      >
+                        {profileSaveLoading ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="bio" className="text-white">
-                      Bio
-                    </Label>
-                    <textarea
-                      id="bio"
-                      value={profile.bio}
-                      onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                      className="flex min-h-[80px] w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                      placeholder="Tell us about yourself..."
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleProfileUpdate}
-                    className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-                  >
-                    Save Changes
-                  </Button>
-                </div>
+                )}
+                  </>
+                )}
               </CardContent>
             </Card>
 
-            {/* Security Section */}
-            <Card className="border-white/20 bg-white/5 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <Lock className="h-5 w-5 mr-2" />
-                  Security
-                </CardTitle>
-                <CardDescription className="text-white/70">Manage your password and security settings</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="currentPassword" className="text-white">
-                    Current Password
-                  </Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    placeholder="Enter current password"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword" className="text-white">
-                    New Password
-                  </Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    placeholder="Enter new password"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-white">
-                    Confirm New Password
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    placeholder="Confirm new password"
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <Button className="bg-white/10 hover:bg-white/20 text-white border-white/20">Update Password</Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Security Section - Change password via SMS code */}
+            <ChangePasswordCard />
           </TabsContent>
 
           {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-6">
-            <Card className="border-white/20 bg-white/5 backdrop-blur-sm">
+            <Card className="border-white/20 bg-white/5">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Bell className="h-5 w-5 mr-2" />
@@ -429,22 +742,6 @@ export default function SettingsPage() {
                       onCheckedChange={(checked) => setNotifications({ ...notifications, clientUpdates: checked })}
                     />
                   </div>
-
-                  <Separator className="bg-white/10" />
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="marketingEmails" className="text-white">
-                        Marketing Emails
-                      </Label>
-                      <p className="text-sm text-white/60">Receive promotional emails and updates</p>
-                    </div>
-                    <Switch
-                      id="marketingEmails"
-                      checked={notifications.marketingEmails}
-                      onCheckedChange={(checked) => setNotifications({ ...notifications, marketingEmails: checked })}
-                    />
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -452,14 +749,55 @@ export default function SettingsPage() {
 
           {/* Calendar Tab */}
           <TabsContent value="calendar" className="space-y-6">
-            <Card className="border-white/20 bg-white/5 backdrop-blur-sm">
+            {/* Subscribe URL: works with Apple Calendar, Google Calendar (Add by URL), Outlook, mobile */}
+            <Card className="border-white/20 bg-white/5">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Calendar className="h-5 w-5 mr-2" />
+                  Sync to mobile &amp; other calendars
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Subscribe with the link below to see your portal events in Apple Calendar, Google Calendar, or any app that supports calendar subscription. When you add or edit events here, they update there too.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {calendarFeedLoading ? (
+                  <p className="text-sm text-white/60">Loading...</p>
+                ) : calendarFeedUrl ? (
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={calendarFeedUrl}
+                      className="flex-1 bg-white/10 border-white/20 text-white text-sm font-mono"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(calendarFeedUrl)
+                        alert("Copied! Paste this URL in your calendar app to subscribe.")
+                      }}
+                      className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-white/60">Could not load feed URL.</p>
+                )}
+                <p className="text-xs text-white/60">
+                  Apple: File → New Calendar Subscription. Google: Add calendar → From URL. Outlook: Add calendar → Subscribe from web.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/20 bg-white/5">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Calendar className="h-5 w-5 mr-2" />
                   Calendar Integrations
                 </CardTitle>
                 <CardDescription className="text-white/70">
-                  Connect your external calendars to sync events automatically
+                  Connect Google Calendar to push events when you create or update them here
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -487,9 +825,10 @@ export default function SettingsPage() {
                       <Button
                         variant="outline"
                         onClick={handleDisconnectGoogle}
+                        disabled={calendarDisconnectLoading}
                         className="bg-white/10 hover:bg-white/20 text-white border-white/20"
                       >
-                        Disconnect
+                        {calendarDisconnectLoading ? "Disconnecting…" : "Disconnect"}
                       </Button>
                     </div>
                   ) : (
@@ -497,62 +836,30 @@ export default function SettingsPage() {
                       onClick={handleConnectGoogle}
                       className="bg-white/10 hover:bg-white/20 text-white border-white/20"
                     >
-                      Connect
+                      Connect Google Calendar
                     </Button>
                   )}
                 </div>
 
-                {/* Apple Calendar */}
+                {/* Apple / mobile: use subscribe URL above */}
                 <div className="flex items-center justify-between p-4 border border-white/20 rounded-lg bg-white/5">
                   <div className="flex items-center gap-4">
                     <div className="p-2 bg-white/10 rounded-lg">
                       <Calendar className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white">Apple Calendar</h3>
+                      <h3 className="font-semibold text-white">Apple Calendar / mobile</h3>
                       <p className="text-sm text-white/60">
-                        {calendarIntegrations.appleCalendar ? "Connected" : "Not connected"}
+                        Use the subscribe URL above to add this calendar to Apple Calendar or any app
                       </p>
                     </div>
                   </div>
-                  {calendarIntegrations.appleCalendar ? (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-400" />
-                      <Button
-                        variant="outline"
-                        onClick={handleDisconnectApple}
-                        className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-                      >
-                        Disconnect
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={handleConnectApple}
-                      className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-                    >
-                      Connect
-                    </Button>
-                  )}
-                </div>
-
-                <Separator className="bg-white/10" />
-
-                {/* Sync Frequency */}
-                <div className="space-y-2">
-                  <Label className="text-white">Sync Frequency</Label>
-                  <select
-                    value={calendarIntegrations.syncFrequency}
-                    onChange={(e) =>
-                      setCalendarIntegrations({ ...calendarIntegrations, syncFrequency: e.target.value })
-                    }
-                    className="flex h-9 w-full rounded-md border border-white/20 bg-white/10 px-3 py-1 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  <Button
+                    onClick={handleConnectApple}
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/20"
                   >
-                    <option value="realtime">Real-time</option>
-                    <option value="hourly">Hourly</option>
-                    <option value="daily">Daily</option>
-                  </select>
-                  <p className="text-xs text-white/60">How often should we sync your calendar events?</p>
+                    How to add
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -560,7 +867,7 @@ export default function SettingsPage() {
 
           {/* Privacy Tab */}
           <TabsContent value="privacy" className="space-y-6">
-            <Card className="border-white/20 bg-white/5 backdrop-blur-sm">
+            <Card className="border-white/20 bg-white/5">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Shield className="h-5 w-5 mr-2" />
@@ -651,85 +958,32 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          {/* Appearance Tab */}
-          <TabsContent value="appearance" className="space-y-6">
-            <Card className="border-white/20 bg-white/5 backdrop-blur-sm">
+          {/* Team Tab */}
+          <TabsContent value="team" className="space-y-6">
+            <Card className="border-white/20 bg-white/5">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
-                  <Palette className="h-5 w-5 mr-2" />
-                  Appearance Settings
+                  <Users className="h-5 w-5 mr-2" />
+                  Join a team
                 </CardTitle>
-                <CardDescription className="text-white/70">Customize how the application looks and behaves</CardDescription>
+                <CardDescription className="text-white/70">
+                  Use a team code from your admin to join their team. Team admins receive a code when they purchase a subscription.
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-white">Theme</Label>
-                    <select
-                      value={appearance.theme}
-                      onChange={(e) => setAppearance({ ...appearance, theme: e.target.value })}
-                      className="flex h-9 w-full rounded-md border border-white/20 bg-white/10 px-3 py-1 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="system">System</option>
-                    </select>
-                  </div>
-
-                  <Separator className="bg-white/10" />
-
-                  <div className="space-y-2">
-                    <Label className="text-white">Default Calendar View</Label>
-                    <select
-                      value={appearance.defaultView}
-                      onChange={(e) => setAppearance({ ...appearance, defaultView: e.target.value })}
-                      className="flex h-9 w-full rounded-md border border-white/20 bg-white/10 px-3 py-1 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                    >
-                      <option value="day">Day</option>
-                      <option value="week">Week</option>
-                      <option value="month">Month</option>
-                    </select>
-                  </div>
-
-                  <Separator className="bg-white/10" />
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="compactMode" className="text-white">
-                        Compact Mode
-                      </Label>
-                      <p className="text-sm text-white/60">Use a more compact layout</p>
-                    </div>
-                    <Switch
-                      id="compactMode"
-                      checked={appearance.compactMode}
-                      onCheckedChange={(checked) => setAppearance({ ...appearance, compactMode: checked })}
-                    />
-                  </div>
-
-                  <Separator className="bg-white/10" />
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="showWeekends" className="text-white">
-                        Show Weekends
-                      </Label>
-                      <p className="text-sm text-white/60">Display weekends in calendar views</p>
-                    </div>
-                    <Switch
-                      id="showWeekends"
-                      checked={appearance.showWeekends}
-                      onCheckedChange={(checked) => setAppearance({ ...appearance, showWeekends: checked })}
-                    />
-                  </div>
-                </div>
+              <CardContent>
+                <Link href="/join-team">
+                  <Button className="bg-white/10 hover:bg-white/20 text-white border-white/20">
+                    <Users className="h-4 w-4 mr-2" />
+                    Enter team code
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
 
         {/* Danger Zone */}
-        <Card className="border-red-500/30 bg-red-500/5 backdrop-blur-sm">
+        <Card className="border-red-500/30 bg-red-500/5">
           <CardHeader>
             <CardTitle className="text-red-400">Danger Zone</CardTitle>
             <CardDescription className="text-white/70">Irreversible and destructive actions</CardDescription>
@@ -737,27 +991,12 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-white">Export Data</h3>
-                <p className="text-sm text-white/60">Download all your data in a portable format</p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleExportData}
-                className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export Data
-              </Button>
-            </div>
-            <Separator className="bg-white/10" />
-            <div className="flex items-center justify-between">
-              <div>
                 <h3 className="font-semibold text-red-400">Delete Account</h3>
-                <p className="text-sm text-white/60">Permanently delete your account and all associated data</p>
+                <p className="text-sm text-white/60">Permanently delete your account and all associated data. Requires verification by text message.</p>
               </div>
               <Button
                 variant="outline"
-                onClick={handleDeleteAccount}
+                onClick={() => setDeleteDialogOpen(true)}
                 className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -766,6 +1005,81 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Delete account dialog - SMS verification required */}
+        <Dialog open={deleteDialogOpen} onOpenChange={(open) => !open && closeDeleteDialog()}>
+          <DialogContent className="sm:max-w-md bg-black/95 border-white/20">
+            <DialogHeader>
+              <DialogTitle className="text-red-400 flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                Delete account
+              </DialogTitle>
+              <DialogDescription className="text-white/70">
+                This action cannot be undone. We will send a verification code to your phone to confirm.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              {deleteStep === "idle" ? (
+                <>
+                  <p className="text-sm text-white/80">
+                    Click below to receive a 6-digit code on your registered phone. Enter the code to permanently delete your account.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={handleRequestDeleteCode}
+                    disabled={deleteSendLoading}
+                    className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
+                  >
+                    {deleteSendLoading ? "Sending..." : "Send code to my phone"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="deleteCode" className="text-white text-sm">
+                      Verification code
+                    </Label>
+                    <Input
+                      id="deleteCode"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="Enter 6-digit code"
+                      value={deleteCode}
+                      onChange={(e) => setDeleteCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      maxLength={6}
+                      className="bg-white/10 border-white/20 text-white font-mono text-lg tracking-widest"
+                    />
+                    <p className="text-white/50 text-xs">
+                      Code expires in 5 minutes. <button type="button" onClick={handleRequestDeleteCode} disabled={deleteSendLoading} className="text-red-300 hover:underline">Resend</button>
+                    </p>
+                  </div>
+                  {deleteError && <p className="text-red-400 text-sm">{deleteError}</p>}
+                </>
+              )}
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeDeleteDialog}
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              >
+                Cancel
+              </Button>
+              {deleteStep === "code_sent" && (
+                <Button
+                  type="button"
+                  onClick={handleConfirmDeleteAccount}
+                  disabled={deleteCode.length !== 6 || deleteConfirmLoading}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {deleteConfirmLoading ? "Deleting..." : "Permanently delete my account"}
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </PortalLayout>
   )

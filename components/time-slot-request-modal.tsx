@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, Clock, User, MessageSquare } from "lucide-react"
+import { DatePicker } from "@/components/date-picker"
 import { Badge } from "@/components/ui/badge"
 
 interface Teammate {
@@ -149,12 +150,10 @@ export function TimeSlotRequestModal({
 
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
+              <DatePicker
                 value={formData.date}
-                onChange={(e) => handleInputChange("date", e.target.value)}
-                required
+                onChange={(date) => handleInputChange("date", date)}
+                placeholder="Select date"
                 min={new Date().toISOString().split("T")[0]}
               />
             </div>

@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Clock, Calendar, X } from "lucide-react"
+import { Clock, Calendar, ChevronLeft, ChevronRight } from "lucide-react"
 import { TimeSlotRequestModal } from "./time-slot-request-modal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { format, addDays, startOfDay, isBefore } from "date-fns"
 
 interface Teammate {
   id: string
@@ -38,90 +39,99 @@ interface TeammateAvailabilityViewProps {
   }) => void
 }
 
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+const MIN_SLOT_HOURS = 0.5
+
+function getAvailableSlotsForDay(
+  dayEvents: Array<{ startTime: string; endTime: string }>
+): Array<{ start: string; end: string }> {
+  const busySlots: Array<{ start: number; end: number }> = dayEvents.map((event) => {
+    const [sh, sm] = event.startTime.split(":").map(Number)
+    const [eh, em] = event.endTime.split(":").map(Number)
+    return {
+      start: sh + (sm || 0) / 60,
+      end: eh + (em || 0) / 60,
+    }
+  })
+  busySlots.sort((a, b) => a.start - b.start)
+
+  const available: Array<{ start: string; end: string }> = []
+  let currentTime = 6
+
+  busySlots.forEach((busy) => {
+    if (currentTime < busy.start) {
+      const startHour = Math.floor(currentTime)
+      const startMin = Math.round((currentTime - startHour) * 60)
+      const endHour = Math.floor(busy.start)
+      const endMin = Math.round((busy.start - endHour) * 60)
+      available.push({
+        start: `${String(startHour).padStart(2, "0")}:${String(startMin).padStart(2, "0")}`,
+        end: `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`,
+      })
+    }
+    currentTime = Math.max(currentTime, busy.end)
+  })
+
+  if (currentTime < 22) {
+    const startHour = Math.floor(currentTime)
+    const startMin = Math.round((currentTime - startHour) * 60)
+    available.push({
+      start: `${String(startHour).padStart(2, "0")}:${String(startMin).padStart(2, "0")}`,
+      end: "22:00",
+    })
+  }
+
+  return available.filter((slot) => {
+    const [sh, sm] = slot.start.split(":").map(Number)
+    const [eh, em] = slot.end.split(":").map(Number)
+    const start = sh + (sm || 0) / 60
+    const end = eh + (em || 0) / 60
+    return end - start >= MIN_SLOT_HOURS
+  })
+}
+
 export function TeammateAvailabilityView({
   teammate,
   isOpen,
   onClose,
   onRequestTimeSlot,
 }: TeammateAvailabilityViewProps) {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date()
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    return new Date(d.setDate(diff))
+  })
   const [showRequestModal, setShowRequestModal] = useState(false)
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{ start: string; end: string } | null>(null)
+  const [selectedSlot, setSelectedSlot] = useState<{
+    date: string
+    start: string
+    end: string
+  } | null>(null)
 
   if (!teammate) return null
 
-  // Get events for selected date (only visible ones and time blocks)
-  const dayEvents = teammate.events.filter((event) => {
-    if (!event.date) return false
-    // Normalize dates for comparison (remove time component)
-    const eventDateStr = event.date.split("T")[0]
-    const selectedDateStr = selectedDate.split("T")[0]
-    return eventDateStr === selectedDateStr && (event.isVisible || event.isTimeBlock)
-  })
+  const weekDates = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  }, [weekStart])
 
-  // Generate time slots (6 AM to 10 PM)
-  const timeSlots = Array.from({ length: 17 }, (_, i) => i + 6)
-
-  // Find available time slots
-  const getAvailableSlots = () => {
-    const busySlots: Array<{ start: number; end: number }> = []
-
-    dayEvents.forEach((event) => {
-      const startHour = Number.parseInt(event.startTime.split(":")[0])
-      const startMin = Number.parseInt(event.startTime.split(":")[1])
-      const endHour = Number.parseInt(event.endTime.split(":")[0])
-      const endMin = Number.parseInt(event.endTime.split(":")[1])
-
-      busySlots.push({
-        start: startHour + startMin / 60,
-        end: endHour + endMin / 60,
+  const availabilityByDay = useMemo(() => {
+    return weekDates.map((date) => {
+      const dateStr = format(date, "yyyy-MM-dd")
+      const dayEvents = teammate.events.filter((event) => {
+        if (!event.date) return false
+        const eventDateStr = event.date.split("T")[0]
+        return eventDateStr === dateStr && (event.isVisible || event.isTimeBlock)
       })
+      const slots = getAvailableSlotsForDay(
+        dayEvents.map((e) => ({ startTime: e.startTime, endTime: e.endTime }))
+      )
+      return { date, dateStr, slots, dayEvents }
     })
+  }, [teammate.events, weekDates])
 
-    // Sort busy slots
-    busySlots.sort((a, b) => a.start - b.start)
-
-    // Find available slots between busy periods
-    const available: Array<{ start: string; end: string }> = []
-    let currentTime = 6 // Start at 6 AM
-
-    busySlots.forEach((busy) => {
-      if (currentTime < busy.start) {
-        // There's available time before this busy slot
-        const startHour = Math.floor(currentTime)
-        const startMin = Math.round((currentTime - startHour) * 60)
-        const endHour = Math.floor(busy.start)
-        const endMin = Math.round((busy.start - endHour) * 60)
-
-        available.push({
-          start: `${startHour.toString().padStart(2, "0")}:${startMin.toString().padStart(2, "0")}`,
-          end: `${endHour.toString().padStart(2, "0")}:${endMin.toString().padStart(2, "0")}`,
-        })
-      }
-      currentTime = Math.max(currentTime, busy.end)
-    })
-
-    // Add remaining time after last busy slot
-    if (currentTime < 22) {
-      const startHour = Math.floor(currentTime)
-      const startMin = Math.round((currentTime - startHour) * 60)
-      available.push({
-        start: `${startHour.toString().padStart(2, "0")}:${startMin.toString().padStart(2, "0")}`,
-        end: "22:00",
-      })
-    }
-
-    return available.filter((slot) => {
-      const start = Number.parseInt(slot.start.split(":")[0]) + Number.parseInt(slot.start.split(":")[1]) / 60
-      const end = Number.parseInt(slot.end.split(":")[0]) + Number.parseInt(slot.end.split(":")[1]) / 60
-      return end - start >= 0.5 // At least 30 minutes
-    })
-  }
-
-  const availableSlots = getAvailableSlots()
-
-  const handleSlotClick = (slot: { start: string; end: string }) => {
-    setSelectedTimeSlot(slot)
+  const handleSlotClick = (dateStr: string, slot: { start: string; end: string }) => {
+    setSelectedSlot({ date: dateStr, start: slot.start, end: slot.end })
     setShowRequestModal(true)
   }
 
@@ -137,100 +147,123 @@ export function TeammateAvailabilityView({
     message: string
   }) => {
     onRequestTimeSlot({
-      requesterId: request.requesterId,
-      requesterName: request.requesterName,
-      teammateId: request.teammateId,
-      teammateName: request.teammateName,
-      date: selectedDate,
-      startTime: selectedTimeSlot?.start || request.startTime,
-      endTime: selectedTimeSlot?.end || request.endTime,
-      title: request.title,
-      message: request.message,
+      ...request,
+      date: selectedSlot?.date ?? request.date,
+      startTime: selectedSlot?.start ?? request.startTime,
+      endTime: selectedSlot?.end ?? request.endTime,
     })
     setShowRequestModal(false)
-    setSelectedTimeSlot(null)
+    setSelectedSlot(null)
   }
+
+  const goPrevWeek = () => setWeekStart((d) => addDays(d, -7))
+  const goNextWeek = () => setWeekStart((d) => addDays(d, 7))
+  const goToThisWeek = () => {
+    const d = new Date()
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    setWeekStart(new Date(d.setDate(diff)))
+  }
+
+  const weekLabel = `${format(weekDates[0], "MMM d")} – ${format(weekDates[6], "MMM d, yyyy")}`
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[600px] bg-white/20 backdrop-blur-lg border-white/30">
+        <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-hidden flex flex-col bg-white/20 backdrop-blur-lg border-white/30">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              {teammate.name}'s Availability
+              {teammate.name}'s Availability – Week View
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 mt-4">
-            {/* Date Selector */}
-            <div>
-              <label className="block text-white text-sm font-medium mb-2">Select Date</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
-                className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          <div className="flex items-center justify-between gap-2 mt-2 mb-4">
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={goPrevWeek}
+                className="h-8 w-8 text-white hover:bg-white/10"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-white font-medium min-w-[200px] text-center text-sm">{weekLabel}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={goNextWeek}
+                className="h-8 w-8 text-white hover:bg-white/10"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={goToThisWeek}
+              className="text-white border-white/30 hover:bg-white/10"
+            >
+              This week
+            </Button>
+          </div>
 
-            {/* Busy Times */}
-            {dayEvents.length > 0 && (
-              <div>
-                <h4 className="text-white text-sm font-medium mb-2">Busy Times</h4>
-                <div className="space-y-1">
-                  {dayEvents.map((event, i) => (
-                    <div key={i} className="bg-white/10 rounded p-2 text-white text-xs">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        <span>
-                          {event.startTime} - {event.endTime}
-                        </span>
-                        {event.isTimeBlock && (
-                          <span className="bg-orange-500/30 px-2 py-0.5 rounded text-[10px]">Personal Block</span>
-                        )}
-                      </div>
-                      {event.isVisible && <div className="text-white/70 mt-1">{event.title}</div>}
+          <div className="overflow-y-auto flex-1 min-h-0 rounded-lg border border-white/20 bg-black/20">
+            <div className="grid grid-cols-7 gap-px bg-white/10">
+              {WEEKDAY_LABELS.map((label, i) => (
+                <div
+                  key={label}
+                  className="bg-white/5 p-2 text-center text-white/80 text-xs font-medium sticky top-0 z-10"
+                >
+                  {label}
+                  <div className="text-white/60 text-[10px] mt-0.5">
+                    {format(weekDates[i], "M/d")}
+                  </div>
+                </div>
+              ))}
+              {availabilityByDay.map(({ date, dateStr, slots, dayEvents }) => (
+                <div key={dateStr} className="bg-white/5 p-2 min-h-[120px]">
+                  {isBefore(startOfDay(date), startOfDay(new Date())) ? (
+                    <p className="text-white/50 text-xs">Past</p>
+                  ) : slots.length === 0 ? (
+                    <p className="text-white/50 text-xs">No slots</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {slots.map((slot, i) => {
+                        const [sh, sm] = slot.start.split(":").map(Number)
+                        const [eh, em] = slot.end.split(":").map(Number)
+                        const duration = (eh + (em || 0) / 60) - (sh + (sm || 0) / 60)
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => handleSlotClick(dateStr, slot)}
+                            className="w-full text-left bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 rounded px-2 py-1.5 transition-colors"
+                          >
+                            <div className="text-white text-xs font-medium truncate">
+                              {slot.start} – {slot.end}
+                            </div>
+                            <div className="text-white/60 text-[10px]">
+                              {duration >= 1 ? `${duration} hr` : `${Math.round(duration * 60)} min`}
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
-            )}
-
-            {/* Available Time Slots */}
-            <div>
-              <h4 className="text-white text-sm font-medium mb-2">Available Time Slots</h4>
-              {availableSlots.length === 0 ? (
-                <p className="text-white/70 text-sm">No available time slots for this date</p>
-              ) : (
-                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-                  {availableSlots.map((slot, i) => {
-                    const start = Number.parseInt(slot.start.split(":")[0]) + Number.parseInt(slot.start.split(":")[1]) / 60
-                    const end = Number.parseInt(slot.end.split(":")[0]) + Number.parseInt(slot.end.split(":")[1]) / 60
-                    const duration = end - start
-
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => handleSlotClick(slot)}
-                        className="bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded-lg p-3 text-left transition-colors"
-                      >
-                        <div className="text-white font-medium text-sm">
-                          {slot.start} - {slot.end}
-                        </div>
-                        <div className="text-white/70 text-xs mt-1">
-                          {duration >= 1 ? `${duration} hour${duration > 1 ? "s" : ""}` : `${Math.round(duration * 60)} minutes`}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+              ))}
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 mt-6">
+          <p className="text-white/60 text-xs mt-2">
+            Click an available slot to request a meeting. Busy times (events and personal blocks) are excluded.
+          </p>
+
+          <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={onClose} className="bg-white/10 text-white border-white/30">
               Close
             </Button>
@@ -242,12 +275,12 @@ export function TeammateAvailabilityView({
         isOpen={showRequestModal}
         onClose={() => {
           setShowRequestModal(false)
-          setSelectedTimeSlot(null)
+          setSelectedSlot(null)
         }}
         teammate={teammate}
         onRequestSubmit={handleRequestSubmit}
-        prefillTime={selectedTimeSlot || undefined}
-        prefillDate={selectedDate}
+        prefillTime={selectedSlot ? { start: selectedSlot.start, end: selectedSlot.end } : undefined}
+        prefillDate={selectedSlot?.date}
       />
     </>
   )

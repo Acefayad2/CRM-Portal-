@@ -3,7 +3,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Copy, Edit, BarChart3, Calendar, User } from "lucide-react"
+import { Copy, Edit, BarChart3, Calendar, User, MessageSquare } from "lucide-react"
 import type { Script } from "@/lib/scripts-data"
 
 interface ScriptViewerSheetProps {
@@ -12,9 +12,10 @@ interface ScriptViewerSheetProps {
   onOpenChange: (open: boolean) => void
   onEdit: (script: Script) => void
   onCopy: (script: Script) => void
+  onSendToClients?: (script: Script) => void
 }
 
-export function ScriptViewerSheet({ script, open, onOpenChange, onEdit, onCopy }: ScriptViewerSheetProps) {
+export function ScriptViewerSheet({ script, open, onOpenChange, onEdit, onCopy, onSendToClients }: ScriptViewerSheetProps) {
   if (!script) return null
 
   const categoryColors = {
@@ -54,6 +55,12 @@ export function ScriptViewerSheet({ script, open, onOpenChange, onEdit, onCopy }
               </div>
             </div>
             <div className="flex gap-2">
+              {onSendToClients && (
+                <Button variant="default" size="sm" onClick={() => onSendToClients(script)} className="flex items-center gap-1">
+                  <MessageSquare className="h-4 w-4" />
+                  Send to clients
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => onCopy(script)} className="flex items-center gap-1">
                 <Copy className="h-4 w-4" />
                 Copy

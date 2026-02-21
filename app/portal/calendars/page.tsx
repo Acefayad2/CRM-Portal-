@@ -1,8 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { format } from "date-fns"
 import Image from "next/image"
 import { PortalSidebar } from "@/components/portal-sidebar"
+import { useSidebar } from "@/contexts/sidebar-context"
 import {
   ChevronLeft,
   ChevronRight,
@@ -21,6 +23,7 @@ import {
   RefreshCw,
 } from "lucide-react"
 import { TeammatesCalendarView } from "@/components/teammates-calendar-view"
+import { DatePicker } from "@/components/date-picker"
 import { RequestManagementPanel } from "@/components/time-slot-request-modal"
 import {
   DropdownMenu,
@@ -31,6 +34,7 @@ import {
 import { Button } from "@/components/ui/button"
 
 export default function CalendarsPage() {
+  const { isCollapsed, toggleSidebar } = useSidebar()
   // Calendar events - empty by default, user will add their own
   const events: any[] = []
   const [isLoaded, setIsLoaded] = useState(false)
@@ -57,7 +61,12 @@ export default function CalendarsPage() {
     isTimeBlock: false, // Personal time block
   })
   const [attendeeInput, setAttendeeInput] = useState("")
+  const [eventClientId, setEventClientId] = useState<string>("")
+  const [eventAttendeePhones, setEventAttendeePhones] = useState<string>("")
+  const [calendarClients, setCalendarClients] = useState<Array<{ id: string; firstName: string; lastName: string }>>([])
   const [allEvents, setAllEvents] = useState(events)
+  const [eventsLoading, setEventsLoading] = useState(true)
+  const [eventsError, setEventsError] = useState<string | null>(null)
   const colorOptions = [
     { name: "Blue", value: "bg-blue-500" },
     { name: "Green", value: "bg-green-500" },
@@ -80,6 +89,51 @@ export default function CalendarsPage() {
     }, 3000)
 
     return () => clearTimeout(popupTimer)
+  }, [])
+
+  // Load clients when create-event modal is open (for reminder recipient dropdown)
+  useEffect(() => {
+    if (!showCreateEventModal) return
+    fetch("/api/clients")
+      .then((res) => (res.ok ? res.json() : { clients: [] }))
+      .then((data) => {
+        if (data?.clients && Array.isArray(data.clients)) {
+          setCalendarClients(
+            data.clients.map((c: { id: string; firstName?: string; lastName?: string }) => ({
+              id: c.id,
+              firstName: c.firstName ?? "",
+              lastName: c.lastName ?? "",
+            }))
+          )
+        }
+      })
+      .catch(() => setCalendarClients([]))
+  }, [showCreateEventModal])
+
+  // Load calendar events from API (persisted; syncs to Google/mobile when connected)
+  useEffect(() => {
+    let cancelled = false
+    setEventsLoading(true)
+    setEventsError(null)
+    fetch("/api/calendar/events")
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (cancelled) return
+        if (ok && data?.events && Array.isArray(data.events)) {
+          setAllEvents(data.events)
+        }
+        if (data?.error || !ok) setEventsError(data?.error ?? "Failed to load events")
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEventsError("Failed to load events")
+          setAllEvents([])
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setEventsLoading(false)
+      })
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
@@ -220,17 +274,17 @@ export default function CalendarsPage() {
   // Format date display based on view
   const getDateDisplay = () => {
     if (currentView === "day") {
-      return currentDateState.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+      return format(currentDateState, "EEEE, MMMM d, yyyy")
     } else if (currentView === "week") {
       const weekStart = getStartOfWeek(currentDateState)
       const weekEnd = getEndOfWeek(currentDateState)
       if (weekStart.getMonth() === weekEnd.getMonth()) {
-        return `${weekStart.toLocaleDateString("en-US", { month: "long", day: "numeric" })} - ${weekEnd.toLocaleDateString("en-US", { day: "numeric", year: "numeric" })}`
+        return `${format(weekStart, "MMMM d")} - ${format(weekEnd, "d, yyyy")}`
       } else {
-        return `${weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${weekEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+        return `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`
       }
     } else {
-      return currentDateState.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+      return format(currentDateState, "MMMM yyyy")
     }
   }
 
@@ -239,12 +293,19 @@ export default function CalendarsPage() {
   const weekDates = getWeekDates(currentDateState)
   const timeSlots = Array.from({ length: 17 }, (_, i) => i + 6) // 6 AM to 10 PM
 
-  // Helper function to calculate event position and height
+  // Helper function to calculate event position and height (safe for malformed time strings)
+  const parseTimeToHours = (timeStr: string) => {
+    const [h, m] = String(timeStr).trim().split(":")
+    const hours = Number.parseInt(h ?? "0", 10)
+    const mins = Number.parseInt(m ?? "0", 10)
+    if (Number.isNaN(hours) || Number.isNaN(mins)) return 0
+    return hours + mins / 60
+  }
   const calculateEventStyle = (startTime: string, endTime: string) => {
-    const start = Number.parseInt(startTime.split(":")[0]) + Number.parseInt(startTime.split(":")[1]) / 60
-    const end = Number.parseInt(endTime.split(":")[0]) + Number.parseInt(endTime.split(":")[1]) / 60
-    const top = (start - 6) * 64 // 64px per hour (h-16 = 64px), starting from 6 AM
-    const height = (end - start) * 64
+    const start = parseTimeToHours(startTime)
+    const end = Math.max(start, parseTimeToHours(endTime))
+    const top = Math.max(0, (start - 6) * 64) // 64px per hour, starting from 6 AM
+    const height = Math.max(16, (end - start) * 64)
     return { top: `${top}px`, height: `${height}px` }
   }
 
@@ -372,7 +433,7 @@ export default function CalendarsPage() {
     }>
   >([])
 
-  const handleTimeSlotRequest = (request: {
+  const handleTimeSlotRequest = async (request: {
     requesterId: string
     requesterName: string
     teammateId: string
@@ -390,40 +451,56 @@ export default function CalendarsPage() {
       createdAt: new Date().toISOString(),
     }
     setTimeSlotRequests((prev) => [...prev, newRequest])
-    // In a real app, you would send this to your backend
-    console.log("Time slot request created:", newRequest)
+
+    // Notify the calendar owner (teammate) by SMS to the phone number on file
+    try {
+      const res = await fetch("/api/calendar/time-slot-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teammateId: request.teammateId,
+          date: request.date,
+          startTime: request.startTime,
+          endTime: request.endTime,
+          title: request.title || undefined,
+          message: request.message || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (data.smsSent === false && data.error) {
+        console.warn("Time slot request created; SMS not sent:", data.error)
+      }
+    } catch (err) {
+      console.error("Failed to send time-slot notification:", err)
+    }
   }
 
-  const handleAcceptRequest = (requestId: string) => {
+  const handleAcceptRequest = async (requestId: string) => {
     const request = timeSlotRequests.find((req) => req.id === requestId)
-    if (request) {
-      // Update request status
-      setTimeSlotRequests((prev) =>
-        prev.map((req) => (req.id === requestId ? { ...req, status: "accepted" as const } : req)),
-      )
-
-      // Create event from accepted request
-      const eventDate = new Date(request.date)
-      const newEventFromRequest = {
-        id: Math.max(0, ...allEvents.map((e) => e.id || 0)) + 1,
-        title: request.title,
-        startTime: request.startTime,
-        endTime: request.endTime,
-        color: "bg-blue-500",
-        date: request.date,
-        day: eventDate.getDay() || 7,
-        description: request.message,
-        location: "",
-        attendees: [request.requesterName],
-        organizer: "You",
-        isRecurring: false,
-        recurrencePattern: "weekly",
-        recurrenceEndDate: "",
-        isVisible: true,
-        isTimeBlock: false,
+    if (!request) return
+    setTimeSlotRequests((prev) =>
+      prev.map((req) => (req.id === requestId ? { ...req, status: "accepted" as const } : req)),
+    )
+    try {
+      const res = await fetch("/api/calendar/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: request.title,
+          startTime: request.startTime,
+          endTime: request.endTime,
+          date: request.date,
+          description: request.message,
+          attendees: [request.requesterName],
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.event) {
+        const ev = { ...data.event, day: new Date(data.event.date).getDay() || 7 }
+        setAllEvents((prev) => [...prev, ev])
       }
-
-      setAllEvents((prev) => [...prev, newEventFromRequest as any])
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -501,58 +578,66 @@ export default function CalendarsPage() {
     }))
   }
 
-  const handleSubmitEvent = (e: React.FormEvent) => {
+  const handleSubmitEvent = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate form
     if (!newEvent.title) {
       alert("Please enter an event title")
       return
     }
 
-    // Ensure date is set
     const eventDate = newEvent.date || new Date().toISOString().split("T")[0]
-    
-    // Create complete event object
-    const completeEvent = {
-      ...newEvent,
-      id: Math.max(0, ...allEvents.map((e) => e.id || 0)) + 1,
-      date: eventDate,
-      day: calculateDayFromDate(eventDate),
-      isVisible: newEvent.isVisible ?? true,
-      isTimeBlock: newEvent.isTimeBlock ?? false,
+
+    try {
+      const res = await fetch("/api/calendar/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newEvent.title,
+          startTime: newEvent.startTime,
+          endTime: newEvent.endTime,
+          date: eventDate,
+          description: newEvent.description || undefined,
+          location: newEvent.location || undefined,
+          color: newEvent.color,
+          isVisible: newEvent.isVisible ?? true,
+          isTimeBlock: newEvent.isTimeBlock ?? false,
+          attendees: newEvent.attendees,
+          clientId: eventClientId || undefined,
+          attendeePhones: eventAttendeePhones
+            ? eventAttendeePhones
+                .split(/[\n,]+/)
+                .map((p) => p.trim())
+                .filter(Boolean)
+            : undefined,
+          recurrencePattern: newEvent.isRecurring ? newEvent.recurrencePattern : undefined,
+          recurrenceEndDate: newEvent.recurrenceEndDate || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || "Failed to create event")
+        return
+      }
+      if (data.event) {
+        const ev = {
+          ...data.event,
+          day: new Date(data.event.date).getDay() || 7,
+        }
+        setAllEvents((prev) => [...prev, ev])
+      }
+      setShowCreateEventModal(false)
+      setEventClientId("")
+      setEventAttendeePhones("")
+    } catch (err) {
+      console.error(err)
+      alert("Failed to create event")
     }
-
-    // Add new event to events array
-    setAllEvents((prev) => [...prev, completeEvent as any])
-
-    // Close modal
-    setShowCreateEventModal(false)
   }
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Portal Sidebar - Static overlay with matching background */}
-      <div className="fixed left-0 top-0 z-50 portal-sidebar-wrapper">
-        <div className="relative w-64 h-screen">
-          {/* Background image overlay for sidebar */}
-          <div className="absolute inset-0">
-            <Image
-              src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070&auto=format&fit=crop"
-              alt=""
-              fill
-              className="object-cover"
-            />
-          </div>
-          {/* Sidebar with transparent backdrop blur */}
-          <div className="absolute inset-0 bg-white/5 backdrop-blur-md border-r border-white/20">
-            <PortalSidebar />
-          </div>
-        </div>
-      </div>
-
-      <div className="relative min-h-screen w-full overflow-hidden pl-64">
-        {/* Background Image */}
+      {/* Background Image - covers full viewport including sidebar */}
       <Image
         src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070&auto=format&fit=crop"
         alt="Beautiful mountain landscape"
@@ -561,16 +646,38 @@ export default function CalendarsPage() {
         priority
       />
 
-      {/* Navigation */}
+      {/* Portal Sidebar - transparent overlay, collapsible */}
+      <div className={`fixed left-0 top-0 z-50 portal-sidebar-wrapper h-screen pointer-events-none transition-all duration-300 ease-in-out ${isCollapsed ? "w-16" : "w-56"}`}>
+        <div className="pointer-events-auto w-full h-full border-r border-white/20">
+          <PortalSidebar />
+        </div>
+      </div>
+
+      <div className={`relative min-h-screen w-full overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? "pl-16" : "pl-64"}`}>
+
+      {/* Navigation (sits inside main content, respects sidebar padding) */}
       <header
-        className={`absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-8 py-6 opacity-0 ${isLoaded ? "animate-fade-in" : ""}`}
+        className={`flex items-center justify-between pl-4 pr-8 py-4 opacity-0 ${
+          isLoaded ? "animate-fade-in" : ""
+        }`}
         style={{ animationDelay: "0.2s" }}
       >
-        <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6 text-white" />
+        {/* Left: sidebar toggle (when collapsed) + Calendar title */}
+        <div className="flex items-center gap-3">
+          {isCollapsed && (
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              aria-label="Expand sidebar"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          )}
           <span className="text-2xl font-semibold text-white drop-shadow-lg">Calendar</span>
         </div>
 
+        {/* Right: search + settings */}
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
@@ -581,29 +688,27 @@ export default function CalendarsPage() {
             />
           </div>
           <Settings className="h-6 w-6 text-white drop-shadow-md" />
-          <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold shadow-md">
-            U
-          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="relative h-screen w-full pt-20 flex">
+      <main className="relative h-screen w-full pt-2 flex">
         {/* Sidebar */}
         <div
-          className={`w-64 h-full bg-white/10 backdrop-blur-lg p-4 shadow-xl border-r border-white/20 rounded-tr-3xl opacity-0 ${isLoaded ? "animate-fade-in" : ""} flex flex-col`}
+          className={`w-64 h-full bg-black/90 backdrop-blur-xl p-4 shadow-xl border-r border-white/20 rounded-tr-3xl opacity-0 ${isLoaded ? "animate-fade-in" : ""} flex flex-col`}
           style={{ animationDelay: "0.4s" }}
         >
-          <button
-            className="mb-6 flex items-center justify-center gap-2 rounded-full bg-blue-500 px-4 py-3 text-white w-full"
-            onClick={handleCreateEvent}
-          >
-            <Plus className="h-5 w-5" />
-            <span>Create</span>
-          </button>
-
           {/* Scrollable content area */}
           <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+            {/* Create event button */}
+            <Button
+              onClick={() => setShowCreateEventModal(true)}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              <Plus className="h-4 w-4 shrink-0" />
+              Create event
+            </Button>
+
             {/* Mini Calendar */}
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -746,11 +851,11 @@ export default function CalendarsPage() {
 
         {/* Calendar View */}
         <div
-          className={`flex-1 flex flex-col opacity-0 ${isLoaded ? "animate-fade-in" : ""}`}
+          className={`flex-1 flex flex-col bg-black/70 opacity-0 ${isLoaded ? "animate-fade-in" : ""}`}
           style={{ animationDelay: "0.6s" }}
         >
           {/* Calendar Controls */}
-          <div className="flex items-center justify-between p-4 border-b border-white/20">
+          <div className="flex items-center justify-between p-4 border-b border-white/20 bg-black/80 backdrop-blur-md">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigateDate("today")}
@@ -858,7 +963,7 @@ export default function CalendarsPage() {
 
           {/* Calendar Views */}
           <div className="flex-1 overflow-auto p-4">
-            <div className="bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 shadow-xl h-full">
+            <div className="bg-black/85 backdrop-blur-xl rounded-xl border border-white/20 shadow-xl h-full">
               {currentView === "day" && (
                 <>
                   {/* Day Header */}
@@ -1257,55 +1362,67 @@ export default function CalendarsPage() {
 
         {/* Create Event Modal */}
         {showCreateEventModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white/20 backdrop-blur-lg p-6 rounded-lg shadow-xl max-w-md w-full mx-4 border border-white/30">
-              <h3 className="text-2xl font-bold mb-4 text-white">Create New Event</h3>
+          <div className={`fixed inset-0 bg-black/40 flex items-start justify-start z-50 ${isCollapsed ? 'pt-24 pl-24' : 'pt-24 pl-[34rem]'}`}>
+            <div className="relative p-6 rounded-xl max-w-md w-full overflow-hidden shadow-2xl create-event-modal" style={{ backgroundColor: "#ffffff", opacity: 1, border: "2px solid #1f2937" }}>
+              <style>{`.create-event-modal{ background:#ffffff !important; opacity:1 !important; }.create-event-modal label{ color:#000 !important; }.create-event-modal input[type="text"],.create-event-modal input[type="time"],.create-event-modal select,.create-event-modal textarea{ color:#fff !important; border:2px solid #374151 !important; background:#4b5563 !important; }.create-event-modal input[type="text"]::placeholder,.create-event-modal textarea::placeholder{ color:#9ca3af !important; }`}</style>
+              <div className="absolute inset-0 rounded-xl z-0" style={{ backgroundColor: "#ffffff", opacity: 1 }} aria-hidden="true" />
+              <h3 className="text-2xl font-bold mb-4 relative z-10" style={{ color: "#000" }}>Create New Event</h3>
 
-              <form onSubmit={handleSubmitEvent} className="space-y-4">
+              <form onSubmit={handleSubmitEvent} className="space-y-4 relative z-10" style={{ color: "#000" }}>
                 <div>
-                  <label className="block text-white text-sm font-medium mb-1">Title</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Title</label>
                   <input
                     type="text"
                     name="title"
                     value={newEvent.title}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-[#9ca3af]"
+                    style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
                     placeholder="Event title"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-white text-sm font-medium mb-1">Start Time</label>
+                    <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Start Time</label>
                     <input
                       type="time"
                       name="startTime"
                       value={newEvent.startTime}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
                     />
                   </div>
                   <div>
-                    <label className="block text-white text-sm font-medium mb-1">End Time</label>
+                    <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>End Time</label>
                     <input
                       type="time"
                       name="endTime"
                       value={newEvent.endTime}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-white text-sm font-medium mb-1">Date</label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={newEvent.date}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Date</label>
+                  <div className="[&_button]:!bg-[#4b5563] [&_button]:!text-white [&_button]:!border-[#374151] [&_button]:!border-2 [&_svg]:!text-[#9ca3af]">
+                    <DatePicker
+                      value={newEvent.date}
+                      onChange={(date) =>
+                        setNewEvent((prev) => ({
+                          ...prev,
+                          date,
+                          day: calculateDayFromDate(date),
+                        }))
+                      }
+                      placeholder="Select date"
+                      className="w-full"
+                    />
+                  </div>
                 </div>
 
                 <div className="mt-4 space-y-3">
@@ -1322,9 +1439,9 @@ export default function CalendarsPage() {
                           isVisible: isTimeBlock ? false : prev.isVisible, // Time blocks are always private
                         }))
                       }}
-                      className="mr-2 h-4 w-4 rounded border-white/30 bg-white/10 text-blue-500 focus:ring-blue-500"
+                      className="mr-2 h-4 w-4 rounded border-2 border-gray-600 text-blue-500 focus:ring-blue-500"
                     />
-                    <label htmlFor="isTimeBlock" className="text-white text-sm font-medium">
+                    <label htmlFor="isTimeBlock" className="text-sm font-medium" style={{ color: "#000" }}>
                       Personal Time Block (Private)
                     </label>
                   </div>
@@ -1336,9 +1453,9 @@ export default function CalendarsPage() {
                         id="isVisible"
                         checked={newEvent.isVisible}
                         onChange={(e) => setNewEvent((prev) => ({ ...prev, isVisible: e.target.checked }))}
-                        className="mr-2 h-4 w-4 rounded border-white/30 bg-white/10 text-blue-500 focus:ring-blue-500"
+                        className="mr-2 h-4 w-4 rounded border-2 border-gray-600 text-blue-500 focus:ring-blue-500"
                       />
-                      <label htmlFor="isVisible" className="text-white text-sm font-medium">
+                      <label htmlFor="isVisible" className="text-sm font-medium" style={{ color: "#000" }}>
                         Show to Teammates
                       </label>
                     </div>
@@ -1350,23 +1467,24 @@ export default function CalendarsPage() {
                       id="isRecurring"
                       checked={newEvent.isRecurring}
                       onChange={(e) => setNewEvent((prev) => ({ ...prev, isRecurring: e.target.checked }))}
-                      className="mr-2 h-4 w-4 rounded border-white/30 bg-white/10 text-blue-500 focus:ring-blue-500"
+                      className="mr-2 h-4 w-4 rounded border-2 border-gray-600 text-blue-500 focus:ring-blue-500"
                     />
-                    <label htmlFor="isRecurring" className="text-white text-sm font-medium">
+                    <label htmlFor="isRecurring" className="text-sm font-medium" style={{ color: "#000" }}>
                       Recurring Event
                     </label>
                   </div>
                 </div>
 
                 {newEvent.isRecurring && (
-                  <div className="space-y-4 mt-4 p-4 bg-white/5 rounded-md border border-white/10">
+                  <div className="space-y-4 mt-4 p-4 rounded-md border-2 border-gray-500" style={{ backgroundColor: "#e5e7eb" }}>
                     <div>
-                      <label className="block text-white text-sm font-medium mb-1">Recurrence Pattern</label>
+                      <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Recurrence Pattern</label>
                       <select
                         name="recurrencePattern"
                         value={newEvent.recurrencePattern}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
                       >
                         <option value="daily">Daily</option>
                         <option value="weekly">Weekly</option>
@@ -1376,49 +1494,90 @@ export default function CalendarsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-white text-sm font-medium mb-1">End Date (Optional)</label>
-                      <input
-                        type="date"
-                        name="recurrenceEndDate"
-                        value={newEvent.recurrenceEndDate}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                      <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>End Date (Optional)</label>
+                      <div className="[&_button]:!bg-[#4b5563] [&_button]:!text-white [&_button]:!border-[#374151] [&_button]:!border-2 [&_svg]:!text-[#9ca3af]">
+                        <DatePicker
+                          value={newEvent.recurrenceEndDate}
+                          onChange={(date) =>
+                            setNewEvent((prev) => ({ ...prev, recurrenceEndDate: date }))
+                          }
+                          placeholder="Select end date"
+                          min={newEvent.date}
+                          className="w-full"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-white text-sm font-medium mb-1">Location</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Location</label>
                   <input
                     type="text"
                     name="location"
                     value={newEvent.location}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-[#9ca3af]"
+                    style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
                     placeholder="Event location"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-white text-sm font-medium mb-1">Description</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Client (reminder)</label>
+                  <select
+                    value={eventClientId}
+                    onChange={(e) => setEventClientId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
+                  >
+                    <option value="">None</option>
+                    {calendarClients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {[c.firstName, c.lastName].filter(Boolean).join(" ") || c.id}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs mt-1" style={{ color: "#374151" }}>
+                    Link a CRM client to send them an SMS reminder 24h before.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Other phones for reminders</label>
+                  <textarea
+                    value={eventAttendeePhones}
+                    onChange={(e) => setEventAttendeePhones(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[60px] placeholder-[#9ca3af]"
+                    style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
+                    placeholder="One phone per line, e.g. +15551234567"
+                  />
+                  <p className="text-xs mt-1" style={{ color: "#374151" }}>
+                    These numbers will receive an SMS reminder 24h before the appointment.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Description</label>
                   <textarea
                     name="description"
                     value={newEvent.description}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+                    className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px] placeholder-[#9ca3af]"
+                    style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
                     placeholder="Event description"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-white text-sm font-medium mb-1">Attendees</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: "#000" }}>Attendees</label>
                   <div className="flex gap-2 mb-2">
                     <input
                       type="text"
                       value={attendeeInput}
                       onChange={(e) => setAttendeeInput(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-[#9ca3af]"
+                      style={{ backgroundColor: "#4b5563", border: "2px solid #374151", color: "#fff" }}
                       placeholder="Add attendee"
                     />
                     <button
@@ -1433,12 +1592,13 @@ export default function CalendarsPage() {
                   {newEvent.attendees.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {newEvent.attendees.map((attendee, index) => (
-                        <div key={index} className="flex items-center bg-white/10 rounded-full px-3 py-1">
-                          <span className="text-white text-sm">{attendee}</span>
+                        <div key={index} className="flex items-center rounded-full px-3 py-1" style={{ backgroundColor: "#e5e7eb" }}>
+                          <span className="text-sm font-medium" style={{ color: "#000" }}>{attendee}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveAttendee(index)}
-                            className="ml-2 text-white/70 hover:text-white"
+                            className="ml-2 hover:opacity-80"
+                            style={{ color: "#374151" }}
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -1451,8 +1611,13 @@ export default function CalendarsPage() {
                 <div className="flex justify-end gap-3 mt-6">
                   <button
                     type="button"
-                    onClick={() => setShowCreateEventModal(false)}
-                    className="px-4 py-2 bg-white/10 text-white rounded-md hover:bg-white/20 transition-colors"
+                    onClick={() => {
+                      setShowCreateEventModal(false)
+                      setEventClientId("")
+                      setEventAttendeePhones("")
+                    }}
+                    className="px-4 py-2 rounded-md hover:bg-gray-400 transition-colors font-medium border-2 border-gray-600"
+                    style={{ backgroundColor: "#d1d5db", color: "#000" }}
                   >
                     Cancel
                   </button>

@@ -2,21 +2,25 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { useContactLogs } from "@/contexts/contact-logs-context"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Phone, Mail, MessageSquare, MoreHorizontal, Search, Filter, Users } from "lucide-react"
-import { mockClients, statusOptions, type Client } from "@/lib/crm-data"
+import { Phone, Mail, MessageSquare, MoreHorizontal, Search, Filter, Users, Share2 } from "lucide-react"
+import { statusOptions, type Client } from "@/lib/crm-data"
+import { useClients } from "@/contexts/clients-context"
 
 interface ClientsListViewProps {
   onClientSelect: (client: Client) => void
+  onSendClient?: (client: Client) => void
 }
 
-export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
-  const [clients, setClients] = useState(mockClients)
+export function ClientsListView({ onClientSelect, onSendClient }: ClientsListViewProps) {
+  const { logContact, getLastContact, getLastCall } = useContactLogs()
+  const { clients, setClients, updateClient } = useClients()
   const [selectedClients, setSelectedClients] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("All")
@@ -24,9 +28,14 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
 
   const handleAction = (action: string, client: Client) => {
-    console.log(`${action} action for ${client.firstName} ${client.lastName}`)
+    const clientName = `${client.firstName} ${client.lastName}`
 
-    // Auto-log contact
+    // Log contact (persists to localStorage, shows on dashboard & client profile)
+    if (action === "call" || action === "text" || action === "email") {
+      logContact(client.id, clientName, action)
+    }
+
+    // Update client (persists to Supabase or localStorage)
     const newContactLog = {
       id: `c${Date.now()}`,
       type: action as "call" | "text" | "email",
@@ -35,15 +44,12 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
       outcome: `${action} initiated`,
       notes: `${action} action performed from client list`,
     }
-
-    // Update client with new contact log
-    setClients((prev) =>
-      prev.map((c) =>
-        c.id === client.id
-          ? { ...c, contactHistory: [newContactLog, ...c.contactHistory], lastContact: newContactLog.timestamp }
-          : c,
-      ),
-    )
+    const updatedHistory = [newContactLog, ...client.contactHistory]
+    const lastContactIso = new Date().toISOString()
+    updateClient(client.id, {
+      contactHistory: updatedHistory,
+      lastContact: lastContactIso,
+    })
 
     // Perform the actual action
     if (action === "call") {
@@ -51,7 +57,7 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
     } else if (action === "text") {
       window.open(`sms:${client.phone}`)
     } else if (action === "email") {
-      window.open(`mailto:${client.email}?subject=SFS%20Follow-up`)
+      window.open(`mailto:${client.email}?subject=Pantheon%20Follow-up`)
     }
   }
 
@@ -144,24 +150,6 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
           >
             Import
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-foreground border-border hover:bg-accent hover:text-accent-foreground"
-            onClick={() => {
-              // Export clients data
-              const dataStr = JSON.stringify(clients, null, 2)
-              const dataBlob = new Blob([dataStr], { type: "application/json" })
-              const url = URL.createObjectURL(dataBlob)
-              const link = document.createElement("a")
-              link.href = url
-              link.download = `clients-export-${new Date().toISOString().split("T")[0]}.json`
-              link.click()
-              URL.revokeObjectURL(url)
-            }}
-          >
-            Export
-          </Button>
         </div>
       </div>
 
@@ -225,25 +213,6 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
           >
             Update Status
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-foreground border-border hover:bg-accent hover:text-accent-foreground"
-            onClick={() => {
-              // Export selected clients
-              const selectedClientsData = clients.filter((c) => selectedClients.includes(c.id))
-              const dataStr = JSON.stringify(selectedClientsData, null, 2)
-              const dataBlob = new Blob([dataStr], { type: "application/json" })
-              const url = URL.createObjectURL(dataBlob)
-              const link = document.createElement("a")
-              link.href = url
-              link.download = `clients-selected-${new Date().toISOString().split("T")[0]}.json`
-              link.click()
-              URL.revokeObjectURL(url)
-            }}
-          >
-            Export Selected
-          </Button>
         </div>
       )}
 
@@ -266,6 +235,7 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
               <TableHead>Status</TableHead>
               <TableHead>Next Appt</TableHead>
               <TableHead>Last Contact</TableHead>
+              <TableHead>Last Called</TableHead>
               <TableHead>Owner</TableHead>
               <TableHead className="w-12">Actions</TableHead>
             </TableRow>
@@ -273,7 +243,7 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
           <TableBody>
             {filteredClients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12">
+                <TableCell colSpan={10} className="text-center py-12">
                   <div className="flex flex-col items-center">
                     <Users className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-medium mb-2">No clients found</h3>
@@ -302,8 +272,7 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="text-xs">
-                        {client.firstName[0]}
-                        {client.lastName[0]}
+                        {(client.firstName?.[0] ?? "") + (client.lastName?.[0] ?? "") || "?"}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -329,7 +298,8 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
                   </div>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{client.nextAppointment || "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{client.lastContact || "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{getLastContact(client.id) || client.lastContact || "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{getLastCall(client.id) || "—"}</TableCell>
                 <TableCell className="text-sm">{client.assignedAgent}</TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -357,6 +327,17 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
                     >
                       <Mail className="h-4 w-4" />
                     </Button>
+                    {onSendClient && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => onSendClient(client)}
+                        title="Share with teammate"
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
@@ -364,6 +345,12 @@ export function ClientsListView({ onClientSelect }: ClientsListViewProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        {onSendClient && (
+                          <DropdownMenuItem onClick={() => onSendClient(client)}>
+                            <Share2 className="h-4 w-4 mr-2" />
+                            Share with teammate
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem>Edit Client</DropdownMenuItem>
                         <DropdownMenuItem>Schedule Appointment</DropdownMenuItem>
                         <DropdownMenuItem>Add Note</DropdownMenuItem>

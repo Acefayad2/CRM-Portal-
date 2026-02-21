@@ -36,7 +36,7 @@ export function TrainingModuleCard({ module, onStart, onView }: TrainingModuleCa
   const Icon = config.icon
 
   return (
-    <Card className="hover:shadow-lg transition-all border-white/20 bg-white/5 backdrop-blur-sm">
+    <Card className="hover:shadow-lg transition-all border-white/20 bg-white/5">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3 flex-1">

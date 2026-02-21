@@ -279,12 +279,19 @@ export function CalendarView() {
   const weekDates = [3, 4, 5, 6, 7, 8, 9]
   const timeSlots = Array.from({ length: 9 }, (_, i) => i + 8) // 8 AM to 4 PM
 
-  // Helper function to calculate event position and height
+  // Helper function to calculate event position and height (safe for malformed time strings)
+  const parseTimeToHours = (timeStr: string) => {
+    const [h, m] = String(timeStr).trim().split(":")
+    const hours = Number.parseInt(h ?? "0", 10)
+    const mins = Number.parseInt(m ?? "0", 10)
+    if (Number.isNaN(hours) || Number.isNaN(mins)) return 0
+    return hours + mins / 60
+  }
   const calculateEventStyle = (startTime: string, endTime: string) => {
-    const start = Number.parseInt(startTime.split(":")[0]) + Number.parseInt(startTime.split(":")[1]) / 60
-    const end = Number.parseInt(endTime.split(":")[0]) + Number.parseInt(endTime.split(":")[1]) / 60
-    const top = (start - 8) * 80 // 80px per hour
-    const height = (end - start) * 80
+    const start = parseTimeToHours(startTime)
+    const end = Math.max(start, parseTimeToHours(endTime))
+    const top = Math.max(0, (start - 8) * 80) // 80px per hour
+    const height = Math.max(20, (end - start) * 80)
     return { top: `${top}px`, height: `${height}px` }
   }
 
@@ -375,8 +382,13 @@ export function CalendarView() {
       return
     }
 
-    // Add new event to events array
-    setAllEvents((prev) => [...prev, newEvent as any])
+    // Add new event to events array (assign temp id if 0; CalendarView is local-only, not persisted to API)
+    const eventToAdd = {
+      ...newEvent,
+      id: newEvent.id || Date.now(),
+      day: newEvent.day ?? new Date(newEvent.date + "T12:00:00").getDay() || 7,
+    }
+    setAllEvents((prev) => [...prev, eventToAdd])
 
     // Close modal
     setShowCreateEventModal(false)
