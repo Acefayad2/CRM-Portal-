@@ -30,7 +30,7 @@ export function ClientMeetingRoom({
       const res = await fetch(`/api/meetings/public/state?token=${encodeURIComponent(token)}`)
       if (res.ok) {
         const data = await res.json()
-        setState(data.state ?? state)
+        if (data.state) setState(data.state)
         setConnected(true)
       }
     } catch (_e) {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { ensurePdfJsConfig } from "@/lib/pdfjs-config"
 
 type SlideViewerProps = {
   pdfUrl: string | null
@@ -25,6 +26,7 @@ export function SlideViewer({ pdfUrl, pageIndex, className = "" }: SlideViewerPr
     let cancelled = false
     const load = async () => {
       try {
+        await ensurePdfJsConfig()
         const pdfjsLib = await import("pdfjs-dist")
         const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise
         if (cancelled) return
@@ -45,6 +47,7 @@ export function SlideViewer({ pdfUrl, pageIndex, className = "" }: SlideViewerPr
     let cancelled = false
     const render = async () => {
       try {
+        await ensurePdfJsConfig()
         const pdfjsLib = await import("pdfjs-dist")
         const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise
         if (cancelled) return

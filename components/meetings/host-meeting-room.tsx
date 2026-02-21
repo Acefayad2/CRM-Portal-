@@ -45,7 +45,11 @@ export function HostMeetingRoom({
   const [scriptFontSize, setScriptFontSize] = useState(16)
   const [scriptDark, setScriptDark] = useState(false)
   const [inviteUrl, setInviteUrl] = useState<string | null>(null)
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   const currentNotes = slides.find((s) => s.slide_index === state.current_slide_index)?.speaker_notes ?? null
   const numSlides = slides.length
@@ -99,7 +103,9 @@ export function HostMeetingRoom({
     } catch (_e) {}
   }
 
-  const createInvite = async () => {
+  const createInvite = useCallback(async () => {
+    setInviteError(null)
+    setInviteLoading(true)
     try {
       const res = await fetch(`/api/meetings/${meetingId}/invite`, {
         method: "POST",
@@ -108,13 +114,18 @@ export function HostMeetingRoom({
       })
       const data = await res.json()
       if (data.joinUrl) setInviteUrl(data.joinUrl)
-    } catch (_e) {}
-  }
+      else setInviteError(data?.error ?? "Could not create link")
+    } catch (_e) {
+      setInviteError("Network error")
+    } finally {
+      setInviteLoading(false)
+    }
+  }, [meetingId])
 
   useEffect(() => {
-    if (inviteUrl) return
+    if (inviteUrl || inviteLoading) return
     createInvite()
-  }, [meetingId])
+  }, [meetingId, inviteUrl, inviteLoading, createInvite])
 
   const copyInvite = () => {
     if (inviteUrl) {
@@ -142,7 +153,7 @@ export function HostMeetingRoom({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {inviteUrl && (
+          {inviteUrl ? (
             <Button
               size="sm"
               variant="outline"
@@ -152,7 +163,18 @@ export function HostMeetingRoom({
               <Copy className="h-4 w-4 mr-1" />
               {copied ? "Copied!" : "Copy invite link"}
             </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={createInvite}
+              disabled={inviteLoading}
+              className="text-white border-white/30 hover:bg-white/10"
+            >
+              {inviteLoading ? "..." : "Generate invite link"}
+            </Button>
           )}
+          {inviteError && <span className="text-xs text-red-300">{inviteError}</span>}
           {meeting.status === "draft" && (
             <Button size="sm" onClick={startMeeting} className="bg-green-600 hover:bg-green-700 text-white">
               <Play className="h-4 w-4 mr-1" />
@@ -197,20 +219,48 @@ export function HostMeetingRoom({
                 </button>
               )}
               {deck && (
-                <label className="flex items-center gap-1 text-xs text-white/70 cursor-pointer">
-                  <Upload className="h-3 w-3" />
-                  <span>Upload PDF</span>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0]
-                      if (f) onUploadPdf?.(deck.id, f)
-                      e.target.value = ""
-                    }}
-                  />
-                </label>
+                <>
+                  <label className={`flex items-center gap-1 text-xs cursor-pointer ${uploading ? "text-white/50 pointer-events-none" : "text-white/70 hover:text-white"}`}>
+                    <Upload className="h-3 w-3" />
+                    <span>{uploading ? "Uploading…" : "Upload PDF"}</span>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0]
+                        e.target.value = ""
+                        if (!f || !onUploadPdf) return
+                        setUploadError(null)
+                        setUploading(true)
+                        try {
+                          await onUploadPdf(deck.id, f)
+                        } catch {
+                          setUploadError("Upload failed")
+                        } finally {
+                          setUploading(false)
+                        }
+                      }}
+                    />
+                  </label>
+                  {uploadError && <p className="text-xs text-red-300">{uploadError}</p>}
+                </>
+              )}
+            </div>
+          )}
+          {meeting.status === "draft" && decks.length === 0 && (
+            <div className="p-2 border-b border-white/10 space-y-2">
+              <p className="text-xs font-medium text-white/70">Deck</p>
+              <p className="text-xs text-white/50">Create a deck, then upload a PDF to get started.</p>
+              {onCreateDeck && (
+                <button
+                  type="button"
+                  onClick={onCreateDeck}
+                  className="w-full rounded bg-white/10 hover:bg-white/20 text-white text-xs px-2 py-1.5 border border-white/20"
+                >
+                  + New deck
+                </button>
               )}
             </div>
           )}

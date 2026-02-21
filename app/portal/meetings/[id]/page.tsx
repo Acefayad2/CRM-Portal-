@@ -55,18 +55,18 @@ export default function HostMeetingPage() {
         ])
         if (cancelled) return
         if (!meetingRes.ok) {
-          setError("Meeting not found")
+          setError(meetingRes.status === 404 ? "Presentation not found" : "Failed to load")
           return
         }
         const meetingData = await meetingRes.json()
         setMeeting(meetingData)
-        const stateData = await stateRes.json()
+        const stateData = stateRes.ok ? await stateRes.json() : {}
         setState({
           current_slide_index: stateData.current_slide_index ?? 0,
           allow_client_navigation: stateData.allow_client_navigation ?? false,
         })
         const decksData = await decksRes.json().catch(() => ({}))
-        setDecks(decksData.decks ?? [])
+        setDecks(Array.isArray(decksData.decks) ? decksData.decks : [])
         if (meetingData.deck_id) {
           loadDeck(meetingData.deck_id)
         }
@@ -97,7 +97,11 @@ export default function HostMeetingPage() {
     const form = new FormData()
     form.append("file", file)
     const res = await fetch(`/api/decks/${deckId}/upload`, { method: "POST", body: form })
-    if (res.ok) await loadDeck(deckId)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data?.error ?? "Upload failed")
+    }
+    await loadDeck(deckId)
   }
 
   const handleCreateDeck = async () => {

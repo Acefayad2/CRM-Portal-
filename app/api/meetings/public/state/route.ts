@@ -95,7 +95,7 @@ export async function PATCH(request: Request) {
       .from("meeting_state")
       .select("allow_client_navigation, current_slide_index")
       .eq("meeting_id", result.meeting.id)
-      .single()
+      .maybeSingle()
 
     if (!stateRow?.allow_client_navigation) {
       return NextResponse.json({ error: "Client navigation not allowed" }, { status: 403 })
@@ -117,9 +117,10 @@ export async function PATCH(request: Request) {
       .update({ current_slide_index: index, updated_at: new Date().toISOString() })
       .eq("meeting_id", result.meeting.id)
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!data) return NextResponse.json({ error: "State not found" }, { status: 404 })
     return NextResponse.json(data)
   } catch (err) {
     console.error("[api/meetings/public/state] PATCH error:", err)
