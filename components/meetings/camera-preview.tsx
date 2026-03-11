@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 
-export function CameraPreview({ className = "" }: { className?: string }) {
+export function CameraPreview({
+  className = "",
+  onFrame,
+}: {
+  className?: string
+  onFrame?: (frame: string) => void
+}) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [muted] = useState(true)
@@ -21,10 +27,24 @@ export function CameraPreview({ className = "" }: { className?: string }) {
       }
     }
     start()
+
+    const captureInterval = window.setInterval(() => {
+      if (!onFrame || !video.videoWidth || !video.videoHeight) return
+      const canvas = document.createElement("canvas")
+      canvas.width = 320
+      canvas.height = 180
+      const ctx = canvas.getContext("2d")
+      if (!ctx) return
+      ctx.scale(-1, 1)
+      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height)
+      onFrame(canvas.toDataURL("image/jpeg", 0.55))
+    }, 1500)
+
     return () => {
+      window.clearInterval(captureInterval)
       if (stream) stream.getTracks().forEach((t) => t.stop())
     }
-  }, [])
+  }, [onFrame])
 
   if (error) {
     return (

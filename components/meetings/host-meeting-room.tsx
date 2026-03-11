@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { SlideViewer } from "./slide-viewer"
 import { ScriptPanel } from "./script-panel"
 import { CameraPreview } from "./camera-preview"
-import { ChevronLeft, ChevronRight, Copy, Radio, Square, Play, Settings2, Upload } from "lucide-react"
+import { ChevronLeft, ChevronRight, Copy, Radio, Square, Play, Settings2, Upload, MonitorPlay, UserRound } from "lucide-react"
 
 type Meeting = {
   id: string
@@ -17,7 +17,13 @@ type Meeting = {
 
 type Deck = { id: string; title: string } | null
 type Slide = { id: string; slide_index: number; storage_path: string; speaker_notes: string | null }
-type State = { current_slide_index: number; allow_client_navigation: boolean }
+type State = {
+  current_slide_index: number
+  allow_client_navigation: boolean
+  host_camera_frame?: string | null
+  host_camera_updated_at?: string | null
+  show_host_camera?: boolean
+}
 
 export function HostMeetingRoom({
   meetingId,
@@ -50,6 +56,7 @@ export function HostMeetingRoom({
   const [copied, setCopied] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const lastPublishedFrameRef = useRef<string | null>(null)
 
   const currentNotes = slides.find((s) => s.slide_index === state.current_slide_index)?.speaker_notes ?? null
   const numSlides = slides.length
@@ -134,6 +141,33 @@ export function HostMeetingRoom({
       setTimeout(() => setCopied(false), 2000)
     }
   }
+
+  const publishCameraFrame = useCallback(
+    async (frame: string) => {
+      if (lastPublishedFrameRef.current === frame) return
+      lastPublishedFrameRef.current = frame
+      try {
+        await fetch(`/api/meetings/${meetingId}/state`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ host_camera_frame: frame }),
+        })
+      } catch {
+        // ignore frame publish failures; local preview remains available
+      }
+    },
+    [meetingId]
+  )
+
+  useEffect(() => {
+    return () => {
+      void fetch(`/api/meetings/${meetingId}/state`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ host_camera_frame: null }),
+      }).catch(() => undefined)
+    }
+  }, [meetingId])
 
   return (
     <div className="flex flex-col h-full">
@@ -284,69 +318,122 @@ export function HostMeetingRoom({
           </div>
         </aside>
 
-        {/* Center: slide display (what client sees) */}
-        <main className="flex-1 flex flex-col min-w-0 p-4">
-          <SlideViewer
-            pdfUrl={pdfUrl}
-            pageIndex={state.current_slide_index}
-            className="flex-1 min-h-[320px]"
-          />
-          <div className="flex items-center justify-center gap-2 mt-3">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={goPrev}
-              disabled={state.current_slide_index <= 0}
-              className="text-white border-white/30"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-white/80 text-sm">
-              {state.current_slide_index + 1} / {numSlides || 1}
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={goNext}
-              disabled={state.current_slide_index >= numSlides - 1}
-              className="text-white border-white/30"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+        {/* Center: host call workspace */}
+        <main className="flex-1 min-w-0 p-4">
+          <div className="grid h-full gap-4 xl:grid-cols-[minmax(0,1.3fr)_360px]">
+            <section className="flex min-h-0 flex-col rounded-xl border border-white/20 bg-black/20 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">Client view</p>
+                  <p className="text-xs text-white/60">Only the presentation and your presenter camera are shared with the client.</p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-white/60">
+                  <MonitorPlay className="h-4 w-4" />
+                  Shared output
+                </div>
+              </div>
+              <SlideViewer
+                pdfUrl={pdfUrl}
+                pageIndex={state.current_slide_index}
+                className="flex-1 min-h-[320px]"
+              />
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={goPrev}
+                  disabled={state.current_slide_index <= 0}
+                  className="text-white border-white/30"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-white/80 text-sm">
+                  {state.current_slide_index + 1} / {numSlides || 1}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={goNext}
+                  disabled={state.current_slide_index >= numSlides - 1}
+                  className="text-white border-white/30"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={state.allow_client_navigation}
+                    onChange={(e) => updateState({ allow_client_navigation: e.target.checked })}
+                    className="rounded border-white/30"
+                  />
+                  Allow client to change slides
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={state.show_host_camera ?? true}
+                    onChange={(e) => updateState({ show_host_camera: e.target.checked })}
+                    className="rounded border-white/30"
+                  />
+                  Show presenter camera
+                </label>
+              </div>
+            </section>
+
+            <aside className="flex min-h-0 flex-col gap-3 rounded-xl border border-white/20 bg-black/20 p-3">
+              <div className="flex items-center gap-2">
+                <Settings2 className="h-4 w-4 text-white/60" />
+                <span className="text-sm font-medium text-white/80">Agent controls</span>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/30 p-2">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-white">
+                    <UserRound className="h-4 w-4" />
+                    Presenter camera
+                  </div>
+                  <span className="text-xs text-white/60">
+                    {state.show_host_camera ?? true ? "Visible to client" : "Hidden from client"}
+                  </span>
+                </div>
+                <CameraPreview className="h-44" onFrame={publishCameraFrame} />
+              </div>
+              <div className="min-h-0 flex-1">
+                <ScriptPanel
+                  notes={currentNotes}
+                  darkMode={scriptDark}
+                  fontSize={scriptFontSize}
+                  onFontSizeChange={(d) => setScriptFontSize((f) => Math.max(12, Math.min(24, f + d)))}
+                  className="h-full"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setScriptDark((d) => !d)}
+                  className="text-white border-white/30 text-xs"
+                >
+                  {scriptDark ? "Light" : "Dark"} mode
+                </Button>
+              </div>
+            </aside>
           </div>
-          <label className="flex items-center gap-2 mt-2 text-sm text-white/70">
-            <input
-              type="checkbox"
-              checked={state.allow_client_navigation}
-              onChange={(e) => updateState({ allow_client_navigation: e.target.checked })}
-              className="rounded border-white/30"
-            />
-            Allow client to change slides
-          </label>
         </main>
 
-        {/* Right: agent panel (camera + script) */}
-        <aside className="w-72 border-l border-white/20 flex flex-col gap-3 p-3 bg-black/20">
+        {/* Right: compact status rail */}
+        <aside className="w-20 border-l border-white/20 flex flex-col items-center gap-3 p-3 bg-black/20">
           <div className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4 text-white/60" />
-            <span className="text-sm font-medium text-white/80">Agent panel</span>
+            <MonitorPlay className="h-4 w-4 text-white/60" />
           </div>
-          <CameraPreview className="h-32" />
-          <ScriptPanel
-            notes={currentNotes}
-            darkMode={scriptDark}
-            fontSize={scriptFontSize}
-            onFontSizeChange={(d) => setScriptFontSize((f) => Math.max(12, Math.min(24, f + d)))}
-          />
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setScriptDark((d) => !d)}
-              className="text-white border-white/30 text-xs"
-            >
-              {scriptDark ? "Light" : "Dark"} mode
-            </Button>
+          <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-3 text-center">
+            <p className="text-[10px] uppercase tracking-wide text-white/50">Client nav</p>
+            <p className="mt-1 text-xs text-white">{state.allow_client_navigation ? "On" : "Off"}</p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-3 text-center">
+            <p className="text-[10px] uppercase tracking-wide text-white/50">Camera</p>
+            <p className="mt-1 text-xs text-white">{state.show_host_camera ?? true ? "On" : "Off"}</p>
           </div>
         </aside>
       </div>

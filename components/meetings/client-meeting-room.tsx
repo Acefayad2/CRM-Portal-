@@ -4,7 +4,13 @@ import { useState, useEffect, useCallback } from "react"
 import { SlideViewer } from "./slide-viewer"
 import { ChevronLeft, ChevronRight, Wifi, WifiOff } from "lucide-react"
 
-type State = { current_slide_index: number; allow_client_navigation: boolean }
+type State = {
+  current_slide_index: number
+  allow_client_navigation: boolean
+  host_camera_frame?: string | null
+  host_camera_updated_at?: string | null
+  show_host_camera?: boolean
+}
 
 const POLL_INTERVAL_MS = 2000
 
@@ -86,11 +92,25 @@ export function ClientMeetingRoom({
       </header>
 
       <main className="flex-1 flex flex-col min-h-0 p-4">
-        <SlideViewer
-          pdfUrl={pdfUrl}
-          pageIndex={state.current_slide_index}
-          className="flex-1 min-h-[400px]"
-        />
+        <div className="relative flex-1 min-h-[400px]">
+          <SlideViewer
+            pdfUrl={pdfUrl}
+            pageIndex={state.current_slide_index}
+            className="h-full min-h-[400px]"
+          />
+          {(state.show_host_camera ?? true) && state.host_camera_frame && (
+            <div className="absolute bottom-4 right-4 w-56 overflow-hidden rounded-xl border border-white/20 bg-black/70 shadow-2xl">
+              <div className="border-b border-white/10 px-3 py-2 text-xs uppercase tracking-wide text-white/60">
+                Presenter
+              </div>
+              <img
+                src={state.host_camera_frame}
+                alt="Presenter camera"
+                className="h-36 w-full object-cover"
+              />
+            </div>
+          )}
+        </div>
         {state.allow_client_navigation && numSlides > 0 && (
           <div className="flex items-center justify-center gap-2 mt-3">
             <button

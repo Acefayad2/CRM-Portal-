@@ -13,7 +13,13 @@ type Meeting = {
 }
 type Deck = { id: string; title: string } | null
 type Slide = { id: string; slide_index: number; storage_path: string; speaker_notes: string | null }
-type State = { current_slide_index: number; allow_client_navigation: boolean }
+type State = {
+  current_slide_index: number
+  allow_client_navigation: boolean
+  host_camera_frame?: string | null
+  host_camera_updated_at?: string | null
+  show_host_camera?: boolean
+}
 
 export default function HostMeetingPage() {
   const params = useParams()
@@ -64,6 +70,9 @@ export default function HostMeetingPage() {
         setState({
           current_slide_index: stateData.current_slide_index ?? 0,
           allow_client_navigation: stateData.allow_client_navigation ?? false,
+          host_camera_frame: stateData.host_camera_frame ?? null,
+          host_camera_updated_at: stateData.host_camera_updated_at ?? null,
+          show_host_camera: stateData.show_host_camera ?? true,
         })
         const decksData = await decksRes.json().catch(() => ({}))
         setDecks(Array.isArray(decksData.decks) ? decksData.decks : [])

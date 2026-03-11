@@ -29,6 +29,9 @@ export async function GET(request: Request) {
       meeting_id: result.meeting.id,
       current_slide_index: 0,
       allow_client_navigation: false,
+      host_camera_frame: null,
+      host_camera_updated_at: null,
+      show_host_camera: true,
       updated_at: new Date().toISOString(),
     }
 
@@ -65,6 +68,9 @@ export async function GET(request: Request) {
       state: {
         current_slide_index: state.current_slide_index,
         allow_client_navigation: state.allow_client_navigation,
+        host_camera_frame: state.host_camera_frame ?? null,
+        host_camera_updated_at: state.host_camera_updated_at ?? null,
+        show_host_camera: state.show_host_camera ?? true,
       },
       deck,
       slides,

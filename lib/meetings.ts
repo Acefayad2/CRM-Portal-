@@ -19,6 +19,9 @@ export type MeetingState = {
   meeting_id: string
   current_slide_index: number
   allow_client_navigation: boolean
+  host_camera_frame?: string | null
+  host_camera_updated_at?: string | null
+  show_host_camera?: boolean
   updated_at: string
 }
 

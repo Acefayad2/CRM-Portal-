@@ -9,7 +9,13 @@ export default function MeetPage() {
   const token = typeof params.token === "string" ? params.token : ""
   const [data, setData] = useState<{
     meeting: { id: string; title: string; status: string }
-    state: { current_slide_index: number; allow_client_navigation: boolean }
+    state: {
+      current_slide_index: number
+      allow_client_navigation: boolean
+      host_camera_frame?: string | null
+      host_camera_updated_at?: string | null
+      show_host_camera?: boolean
+    }
     slides: { id: string; slide_index: number; storage_path: string }[]
     pdfUrl: string | null
   } | null>(null)
@@ -43,7 +49,7 @@ export default function MeetPage() {
         }
         setData({
           meeting: stateData.meeting,
-          state: stateData.state ?? { current_slide_index: 0, allow_client_navigation: false },
+          state: stateData.state ?? { current_slide_index: 0, allow_client_navigation: false, host_camera_frame: null, show_host_camera: true },
           slides: stateData.slides ?? [],
           pdfUrl,
         })
