@@ -1,0 +1,17 @@
+Twilio setup handoff for CRM Portal
+
+The app’s main Twilio webhook logic lives in the Next.js route /api/twilio/webhook. Twilio Console should point both inbound SMS and status callbacks to https://<your-domain>/api/twilio/webhook if possible. There are also legacy Netlify functions for twilio-inbound and twilio-status, but those are now just forwarding shims and should not be treated as the primary implementation.
+
+SMS sending currently happens in the API route that powers the Test SMS flow, plus additional SMS notifications are sent from the calendar reminder and time-slot request flows. The important backend detail is that hosted Supabase uses the sms_logs table for SMS records, not the older messages table. The app has already been updated so shared SMS logging uses sms_logs.
+
+Current sms_logs schema is: workspace_id, to_phone, from_phone, body, provider_message_id, created_at. There is no status column right now, so Twilio delivery status callbacks are currently accepted but not persisted as delivery state. Outbound and inbound message logging is the part that should work. Inbound SMS currently resolves workspace_id by finding the most recent outbound sms_logs row with reversed phone numbers.
+
+Please verify these environment variables are present and correct: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER or TWILIO_MESSAGING_SERVICE_SID, and TWILIO_WEBHOOK_BASE_URL. If using Netlify shims, also verify URL/DEPLOY_URL/NEXT_PUBLIC_APP_URL are set so the shims can forward into the main webhook route.
+
+Tasks to complete:
+1. Finish Twilio Console configuration so inbound SMS and status callbacks hit the correct production URL.
+2. Test outbound SMS from the app and confirm a row is created in sms_logs.
+3. Reply from a real phone and confirm inbound SMS is logged in sms_logs.
+4. If delivery tracking is required, add a Supabase migration to extend sms_logs with a status column (and optionally direction/updated_at), then update the shared SMS database helper so Twilio status callbacks persist status by provider_message_id.
+
+Important unrelated backend note: the hosted Supabase project is still missing the presentation migration that adds presenter camera fields to meeting_state. That affects presentations, not Twilio, but it is still outstanding in the backend.

@@ -3,22 +3,21 @@
  * POST /api/decks - create deck
  */
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
 import { isSupabaseConfigured } from "@/lib/supabase"
+import { resolvePresentationActor } from "@/lib/presentation-actor"
 
 export async function GET() {
   try {
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Not configured" }, { status: 503 })
     }
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const actor = await resolvePresentationActor()
+    if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { data, error } = await supabase
+    const { data, error } = await actor.client
       .from("slide_decks")
       .select("id, title, created_at")
-      .eq("owner_user_id", user.id)
+      .eq("owner_user_id", actor.userId)
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -37,9 +36,8 @@ export async function POST(request: Request) {
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Not configured" }, { status: 503 })
     }
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const actor = await resolvePresentationActor()
+    if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     let body: { title?: string }
     try {
@@ -49,9 +47,9 @@ export async function POST(request: Request) {
     }
     const title = typeof body.title === "string" ? body.title.trim() || "Untitled Deck" : "Untitled Deck"
 
-    const { data: deck, error } = await supabase
+    const { data: deck, error } = await actor.client
       .from("slide_decks")
-      .insert({ owner_user_id: user.id, title })
+      .insert({ owner_user_id: actor.userId, title })
       .select("id, title, created_at")
       .single()
 

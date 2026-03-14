@@ -3,7 +3,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Copy, Edit, BarChart3, Calendar, User, MessageSquare } from "lucide-react"
+import { Copy, Edit, BarChart3, Calendar, User, MessageSquare, Trash2 } from "lucide-react"
 import type { Script } from "@/lib/scripts-data"
 
 interface ScriptViewerSheetProps {
@@ -12,10 +12,11 @@ interface ScriptViewerSheetProps {
   onOpenChange: (open: boolean) => void
   onEdit: (script: Script) => void
   onCopy: (script: Script) => void
+  onDelete?: (script: Script) => void
   onSendToClients?: (script: Script) => void
 }
 
-export function ScriptViewerSheet({ script, open, onOpenChange, onEdit, onCopy, onSendToClients }: ScriptViewerSheetProps) {
+export function ScriptViewerSheet({ script, open, onOpenChange, onEdit, onCopy, onDelete, onSendToClients }: ScriptViewerSheetProps) {
   if (!script) return null
 
   const categoryColors = {
@@ -69,6 +70,12 @@ export function ScriptViewerSheet({ script, open, onOpenChange, onEdit, onCopy, 
                 <Edit className="h-4 w-4" />
                 Edit
               </Button>
+              {onDelete && (
+                <Button variant="outline" size="sm" onClick={() => onDelete(script)} className="flex items-center gap-1 text-red-300 hover:text-red-200">
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </Button>
+              )}
             </div>
           </div>
         </SheetHeader>

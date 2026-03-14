@@ -3,9 +3,9 @@
  * Body: { expiresInHours?: number } default 24
  */
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
 import { isSupabaseConfigured } from "@/lib/supabase"
 import { generateInviteToken } from "@/lib/meetings"
+import { resolvePresentationActor } from "@/lib/presentation-actor"
 
 export async function POST(
   request: Request,
@@ -16,17 +16,16 @@ export async function POST(
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Not configured" }, { status: 503 })
     }
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const actor = await resolvePresentationActor()
+    if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { data: meeting } = await supabase
+    const { data: meeting } = await actor.client
       .from("meetings")
       .select("id, host_user_id")
       .eq("id", meetingId)
       .single()
 
-    if (!meeting || meeting.host_user_id !== user.id) {
+    if (!meeting || meeting.host_user_id !== actor.userId) {
       return NextResponse.json({ error: "Meeting not found" }, { status: 404 })
     }
 
@@ -42,7 +41,7 @@ export async function POST(
     const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000)
     const invite_token = generateInviteToken()
 
-    const { data: invite, error } = await supabase
+    const { data: invite, error } = await actor.client
       .from("meeting_invites")
       .insert({ meeting_id: meetingId, invite_token, expires_at: expiresAt.toISOString() })
       .select("id, invite_token, expires_at, created_at")

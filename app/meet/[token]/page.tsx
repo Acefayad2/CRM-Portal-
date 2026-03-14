@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { ClientMeetingRoom } from "@/components/meetings/client-meeting-room"
+import type { PresentationSource } from "@/lib/presentation-source"
 
 export default function MeetPage() {
   const params = useParams()
@@ -17,7 +18,7 @@ export default function MeetPage() {
       show_host_camera?: boolean
     }
     slides: { id: string; slide_index: number; storage_path: string }[]
-    pdfUrl: string | null
+    presentationSource: PresentationSource | null
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -42,16 +43,16 @@ export default function MeetPage() {
           return
         }
         const stateData = await stateRes.json()
-        let pdfUrl: string | null = null
+        let presentationSource: PresentationSource | null = null
         if (pdfRes.ok) {
           const pdfData = await pdfRes.json()
-          pdfUrl = pdfData.url ?? null
+          presentationSource = pdfData.source ?? (pdfData.url ? { kind: "pdf", url: pdfData.url, embedUrl: null, label: "PDF deck", canNavigate: true } : null)
         }
         setData({
           meeting: stateData.meeting,
           state: stateData.state ?? { current_slide_index: 0, allow_client_navigation: false, host_camera_frame: null, show_host_camera: true },
           slides: stateData.slides ?? [],
-          pdfUrl,
+          presentationSource,
         })
       } catch (_e) {
         if (!cancelled) setError("Failed to load")
@@ -89,7 +90,7 @@ export default function MeetPage() {
           initialMeeting={data.meeting}
           initialState={data.state}
           initialSlides={data.slides}
-          pdfUrl={data.pdfUrl}
+          presentationSource={data.presentationSource}
         />
       </div>
     </div>

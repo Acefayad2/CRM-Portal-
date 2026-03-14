@@ -4,7 +4,6 @@
  */
 import { supabase, isSupabaseConfigured } from "@/lib/supabase"
 
-type MessageDirection = "outbound" | "inbound"
 type MessageStatus = "queued" | "sent" | "delivered" | "failed" | "received"
 
 /** Normalize Twilio status to our schema (queued|sent|delivered|failed) */
@@ -18,17 +17,8 @@ export function normalizeTwilioStatus(status: string | null | undefined): Messag
   return "queued"
 }
 
-interface MessageRow {
-  id?: string
-  direction: MessageDirection
-  status: MessageStatus
-  to_phone: string
-  from_phone: string
-  body: string
-  provider_message_id?: string | null
-}
-
 export async function insertOutboundMessage(params: {
+  workspace_id: string
   to_phone: string
   from_phone: string
   body: string
@@ -37,15 +27,14 @@ export async function insertOutboundMessage(params: {
 }): Promise<string | null> {
   if (!isSupabaseConfigured() || !supabase) return null
   const { data, error } = await supabase
-    .from("messages")
+    .from("sms_logs")
     .insert({
-      direction: "outbound",
-      status: params.status ?? "queued",
+      workspace_id: params.workspace_id,
       to_phone: params.to_phone,
       from_phone: params.from_phone,
       body: params.body,
       provider_message_id: params.provider_message_id ?? null,
-    } satisfies MessageRow)
+    })
     .select("id")
     .single()
   if (error) {
@@ -59,14 +48,10 @@ export async function updateMessageStatus(
   providerMessageId: string,
   status: MessageStatus
 ): Promise<void> {
-  if (!isSupabaseConfigured() || !supabase) return
-  const { error } = await supabase
-    .from("messages")
-    .update({ status })
-    .eq("provider_message_id", providerMessageId)
-  if (error) {
-    console.error("[sms-db] updateMessageStatus error:", error)
-  }
+  void providerMessageId
+  void status
+  // sms_logs does not currently persist delivery status. Keep this as a safe no-op
+  // until the schema adds a dedicated status column for Twilio callbacks.
 }
 
 /** Update a message by its DB id (e.g. right after send, to set provider_message_id + status) */
@@ -74,11 +59,9 @@ export async function updateMessageById(
   id: string,
   updates: { provider_message_id?: string; status?: MessageStatus }
 ): Promise<void> {
-  if (!isSupabaseConfigured() || !supabase) return
-  const { error } = await supabase.from("messages").update(updates).eq("id", id)
-  if (error) {
-    console.error("[sms-db] updateMessageById error:", error)
-  }
+  void id
+  void updates
+  // No-op for now. sms_logs records sends/receipts, but does not have a mutable status column.
 }
 
 export async function upsertInboundMessage(params: {
@@ -88,14 +71,31 @@ export async function upsertInboundMessage(params: {
   provider_message_id: string
 }): Promise<void> {
   if (!isSupabaseConfigured() || !supabase) return
-  const { error } = await supabase.from("messages").insert({
-    direction: "inbound",
-    status: "received",
+  const { data: priorOutbound } = await supabase
+    .from("sms_logs")
+    .select("workspace_id")
+    .eq("to_phone", params.from_phone)
+    .eq("from_phone", params.to_phone)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!priorOutbound?.workspace_id) {
+    console.warn("[sms-db] Could not resolve workspace for inbound SMS", {
+      from_phone: params.from_phone,
+      to_phone: params.to_phone,
+      provider_message_id: params.provider_message_id,
+    })
+    return
+  }
+
+  const { error } = await supabase.from("sms_logs").insert({
+    workspace_id: priorOutbound.workspace_id,
     to_phone: params.to_phone,
     from_phone: params.from_phone,
     body: params.body,
     provider_message_id: params.provider_message_id,
-  } satisfies MessageRow)
+  })
   if (error) {
     console.error("[sms-db] upsertInboundMessage error:", error)
   }

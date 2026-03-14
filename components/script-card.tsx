@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Copy, Eye, Edit, BarChart3 } from "lucide-react"
+import { Copy, Eye, Edit, BarChart3, Trash2 } from "lucide-react"
 import type { Script } from "@/lib/scripts-data"
 
 interface ScriptCardProps {
@@ -11,9 +11,10 @@ interface ScriptCardProps {
   onView: (script: Script) => void
   onEdit: (script: Script) => void
   onCopy: (script: Script) => void
+  onDelete: (script: Script) => void
 }
 
-export function ScriptCard({ script, onView, onEdit, onCopy }: ScriptCardProps) {
+export function ScriptCard({ script, onView, onEdit, onCopy, onDelete }: ScriptCardProps) {
   const categoryColors = {
     presentation: "bg-blue-100 text-blue-800",
     "cold-call": "bg-green-100 text-green-800",
@@ -65,6 +66,9 @@ export function ScriptCard({ script, onView, onEdit, onCopy }: ScriptCardProps) 
               </Button>
               <Button variant="ghost" size="sm" onClick={() => onEdit(script)} className="h-8 w-8 p-0">
                 <Edit className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => onDelete(script)} className="h-8 w-8 p-0 text-red-300 hover:text-red-200">
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>

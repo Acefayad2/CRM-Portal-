@@ -33,6 +33,54 @@ export type MeetingInvite = {
   created_at: string
 }
 
+function isLegacyMeetingStateSchemaError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false
+  const maybeError = error as { code?: string; message?: string }
+  const message = maybeError.message ?? ""
+  return maybeError.code === "42703" || /host_camera_frame|host_camera_updated_at|show_host_camera/.test(message)
+}
+
+async function loadMeetingState(meetingId: string): Promise<MeetingState | null> {
+  if (!supabase) return null
+
+  const fullSelect =
+    "meeting_id, current_slide_index, allow_client_navigation, host_camera_frame, host_camera_updated_at, show_host_camera, updated_at"
+  const baseSelect = "meeting_id, current_slide_index, allow_client_navigation, updated_at"
+
+  const fullState = await supabase
+    .from("meeting_state")
+    .select(fullSelect)
+    .eq("meeting_id", meetingId)
+    .maybeSingle()
+
+  if (!fullState.error) {
+    return (fullState.data as MeetingState | null) ?? null
+  }
+  if (!isLegacyMeetingStateSchemaError(fullState.error)) {
+    return null
+  }
+
+  const legacyState = await supabase
+    .from("meeting_state")
+    .select(baseSelect)
+    .eq("meeting_id", meetingId)
+    .maybeSingle()
+
+  if (legacyState.error || !legacyState.data) {
+    return null
+  }
+
+  return {
+    meeting_id: legacyState.data.meeting_id,
+    current_slide_index: legacyState.data.current_slide_index,
+    allow_client_navigation: legacyState.data.allow_client_navigation,
+    host_camera_frame: null,
+    host_camera_updated_at: null,
+    show_host_camera: true,
+    updated_at: legacyState.data.updated_at,
+  }
+}
+
 /**
  * Validate invite token and return meeting + state if valid.
  * Uses service role so guests (no auth) can be validated.
@@ -73,11 +121,7 @@ export async function validateInviteToken(token: string): Promise<{
     return { ok: false, error: "Meeting not found" }
   }
 
-  const { data: state } = await supabase
-    .from("meeting_state")
-    .select("meeting_id, current_slide_index, allow_client_navigation, updated_at")
-    .eq("meeting_id", invite.meeting_id)
-    .maybeSingle()
+  const state = await loadMeetingState(invite.meeting_id)
 
   return {
     ok: true,

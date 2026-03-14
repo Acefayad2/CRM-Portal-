@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { PortalLayout } from "@/components/portal-layout"
 import { HostMeetingRoom } from "@/components/meetings/host-meeting-room"
+import type { PresentationSource } from "@/lib/presentation-source"
 
 type Meeting = {
   id: string
@@ -28,7 +29,7 @@ export default function HostMeetingPage() {
   const [deck, setDeck] = useState<Deck>(null)
   const [slides, setSlides] = useState<Slide[]>([])
   const [state, setState] = useState<State>({ current_slide_index: 0, allow_client_navigation: false })
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [presentationSource, setPresentationSource] = useState<PresentationSource | null>(null)
   const [decks, setDecks] = useState<{ id: string; title: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,8 +45,10 @@ export default function HostMeetingPage() {
       setSlides(s ?? [])
     }
     if (urlRes.ok) {
-      const { url } = await urlRes.json()
-      setPdfUrl(url)
+      const data = await urlRes.json()
+      setPresentationSource(data.source ?? (data.url ? { kind: "pdf", url: data.url, embedUrl: null, label: "PDF deck", canNavigate: true } : null))
+    } else {
+      setPresentationSource(null)
     }
   }, [])
 
@@ -98,11 +101,12 @@ export default function HostMeetingPage() {
         body: JSON.stringify({ deck_id: deckId }),
       })
       setMeeting((m) => (m ? { ...m, deck_id: deckId } : null))
+      setState((prev) => ({ ...prev, current_slide_index: 0 }))
       await loadDeck(deckId)
     } catch (_e) {}
   }
 
-  const handleUploadPdf = async (deckId: string, file: File) => {
+  const handleUploadDeck = async (deckId: string, file: File) => {
     const form = new FormData()
     form.append("file", file)
     const res = await fetch(`/api/decks/${deckId}/upload`, { method: "POST", body: form })
@@ -110,6 +114,20 @@ export default function HostMeetingPage() {
       const data = await res.json().catch(() => ({}))
       throw new Error(data?.error ?? "Upload failed")
     }
+    setState((prev) => ({ ...prev, current_slide_index: 0 }))
+    await loadDeck(deckId)
+  }
+
+  const handleSaveLink = async (deckId: string, externalUrl: string, label?: string) => {
+    const form = new FormData()
+    form.append("externalUrl", externalUrl)
+    if (label) form.append("label", label)
+    const res = await fetch(`/api/decks/${deckId}/upload`, { method: "POST", body: form })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data?.error ?? "Could not save link")
+    }
+    setState((prev) => ({ ...prev, current_slide_index: 0 }))
     await loadDeck(deckId)
   }
 
@@ -156,10 +174,11 @@ export default function HostMeetingPage() {
           deck={deck}
           slides={slides}
           initialState={state}
-          pdfUrl={pdfUrl}
+          presentationSource={presentationSource}
           decks={decks}
           onSelectDeck={handleSelectDeck}
-          onUploadPdf={handleUploadPdf}
+          onUploadDeck={handleUploadDeck}
+          onSaveLink={handleSaveLink}
           onCreateDeck={handleCreateDeck}
         />
       </div>

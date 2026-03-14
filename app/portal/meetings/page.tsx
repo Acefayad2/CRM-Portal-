@@ -22,14 +22,31 @@ export default function MeetingsPage() {
   const [loading, setLoading] = useState(true)
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadInfo, setLoadInfo] = useState<string | null>(null)
 
   useEffect(() => {
     fetch("/api/meetings")
-      .then((r) => (r.ok ? r.json() : { meetings: [] }))
+      .then(async (r) => {
+        if (r.ok) return r.json()
+        const data = await r.json().catch(() => ({}))
+        if (r.status === 401) {
+          setLoadInfo("Sign in to view and host presentations.")
+          setLoadError(null)
+          return { meetings: [] }
+        }
+        setLoadInfo(null)
+        setLoadError(typeof data.error === "string" ? data.error : "Failed to load presentations.")
+        return { meetings: [] }
+      })
       .then((data) => {
         setMeetings(Array.isArray(data.meetings) ? data.meetings : [])
       })
-      .catch(() => setMeetings([]))
+      .catch(() => {
+        setMeetings([])
+        setLoadInfo(null)
+        setLoadError("Network error while loading presentations.")
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -88,6 +105,18 @@ export default function MeetingsPage() {
             {createError.toLowerCase().includes("relation") && (
               <p className="mt-1 text-red-200/80 text-xs">Run the Supabase migration (019_meetings.sql) to create the meetings tables.</p>
             )}
+          </div>
+        )}
+
+        {loadError && (
+          <div className="rounded-lg bg-red-500/20 border border-red-500/40 text-red-200 px-4 py-2 text-sm">
+            {loadError}
+          </div>
+        )}
+
+        {loadInfo && (
+          <div className="rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80">
+            {loadInfo}
           </div>
         )}
 

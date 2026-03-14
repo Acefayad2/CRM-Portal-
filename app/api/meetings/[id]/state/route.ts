@@ -3,8 +3,15 @@
  * PATCH /api/meetings/[id]/state - update state (host only): current_slide_index, allow_client_navigation, presenter camera
  */
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
 import { isSupabaseConfigured } from "@/lib/supabase"
+import { resolvePresentationActor } from "@/lib/presentation-actor"
+
+function isLegacyMeetingStateSchemaError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false
+  const maybeError = error as { code?: string; message?: string }
+  const message = maybeError.message ?? ""
+  return maybeError.code === "42703" || /host_camera_frame|host_camera_updated_at|show_host_camera/.test(message)
+}
 
 export async function GET(
   _request: Request,
@@ -15,29 +22,57 @@ export async function GET(
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Not configured" }, { status: 503 })
     }
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const actor = await resolvePresentationActor()
+    if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { data: meeting } = await supabase
+    const { data: meeting } = await actor.client
       .from("meetings")
       .select("id, host_user_id")
       .eq("id", meetingId)
       .single()
 
-    if (!meeting || meeting.host_user_id !== user.id) {
+    if (!meeting || meeting.host_user_id !== actor.userId) {
       return NextResponse.json({ error: "Meeting not found" }, { status: 404 })
     }
 
-    const { data: state, error } = await supabase
+    const fullSelect =
+      "meeting_id, current_slide_index, allow_client_navigation, host_camera_frame, host_camera_updated_at, show_host_camera, updated_at"
+    const baseSelect = "meeting_id, current_slide_index, allow_client_navigation, updated_at"
+
+    const { data: state, error } = await actor.client
       .from("meeting_state")
-      .select("meeting_id, current_slide_index, allow_client_navigation, host_camera_frame, host_camera_updated_at, show_host_camera, updated_at")
+      .select(fullSelect)
       .eq("meeting_id", meetingId)
       .maybeSingle()
 
-    if (error) {
+    if (error && !isLegacyMeetingStateSchemaError(error)) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+
+    if (state) {
+      return NextResponse.json(state)
+    }
+
+    if (error && isLegacyMeetingStateSchemaError(error)) {
+      const legacyState = await actor.client
+        .from("meeting_state")
+        .select(baseSelect)
+        .eq("meeting_id", meetingId)
+        .maybeSingle()
+
+      if (legacyState.error) {
+        return NextResponse.json({ error: legacyState.error.message }, { status: 500 })
+      }
+      if (legacyState.data) {
+        return NextResponse.json({
+          ...legacyState.data,
+          host_camera_frame: null,
+          host_camera_updated_at: null,
+          show_host_camera: true,
+        })
+      }
+    }
+
     if (!state) {
       return NextResponse.json({
         current_slide_index: 0,
@@ -48,7 +83,6 @@ export async function GET(
         updated_at: new Date().toISOString(),
       })
     }
-    return NextResponse.json(state)
   } catch (err) {
     console.error("[api/meetings/[id]/state] GET error:", err)
     return NextResponse.json({ error: "Failed to get state" }, { status: 500 })
@@ -64,17 +98,16 @@ export async function PATCH(
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Not configured" }, { status: 503 })
     }
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const actor = await resolvePresentationActor()
+    if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { data: meeting } = await supabase
+    const { data: meeting } = await actor.client
       .from("meetings")
       .select("id, host_user_id")
       .eq("id", meetingId)
       .single()
 
-    if (!meeting || meeting.host_user_id !== user.id) {
+    if (!meeting || meeting.host_user_id !== actor.userId) {
       return NextResponse.json({ error: "Meeting not found" }, { status: 404 })
     }
 
@@ -109,15 +142,39 @@ export async function PATCH(
     }
 
     if (Object.keys(updates).length <= 1) {
-      const { data } = await supabase.from("meeting_state").select("*").eq("meeting_id", meetingId).maybeSingle()
+      const { data } = await actor.client.from("meeting_state").select("*").eq("meeting_id", meetingId).maybeSingle()
       return NextResponse.json(data ?? { meeting_id: meetingId, current_slide_index: 0, allow_client_navigation: false, show_host_camera: true })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await actor.client
       .from("meeting_state")
       .upsert({ meeting_id: meetingId, ...updates }, { onConflict: "meeting_id" })
       .select()
       .single()
+
+    if (error && isLegacyMeetingStateSchemaError(error)) {
+      delete updates.host_camera_frame
+      delete updates.host_camera_updated_at
+      delete updates.show_host_camera
+
+      const legacyResult = await actor.client
+        .from("meeting_state")
+        .upsert({ meeting_id: meetingId, ...updates }, { onConflict: "meeting_id" })
+        .select("meeting_id, current_slide_index, allow_client_navigation, updated_at")
+        .single()
+
+      if (legacyResult.error) {
+        console.error("[api/meetings/[id]/state] PATCH legacy fallback error:", legacyResult.error)
+        return NextResponse.json({ error: legacyResult.error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        ...legacyResult.data,
+        host_camera_frame: null,
+        host_camera_updated_at: null,
+        show_host_camera: true,
+      })
+    }
 
     if (error) {
       console.error("[api/meetings/[id]/state] PATCH error:", error)

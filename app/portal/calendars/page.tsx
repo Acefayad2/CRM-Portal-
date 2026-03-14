@@ -18,16 +18,14 @@ import {
   Calendar,
   UserPlus,
   RefreshCw,
+  Copy,
+  ExternalLink,
+  CheckCircle2,
+  X,
 } from "lucide-react"
 import { TeammatesCalendarView } from "@/components/teammates-calendar-view"
 import { DatePicker } from "@/components/date-picker"
 import { RequestManagementPanel } from "@/components/time-slot-request-modal"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 
 export default function CalendarsPage() {
@@ -127,19 +125,28 @@ export default function CalendarsPage() {
   const [currentDateState, setCurrentDateState] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [showSyncCalendarModal, setShowSyncCalendarModal] = useState(false)
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false)
+  const [calendarFeedUrl, setCalendarFeedUrl] = useState("")
+  const [calendarFeedLoading, setCalendarFeedLoading] = useState(false)
   const [calendarNotice, setCalendarNotice] = useState<string | null>(null)
   const [calendarNoticeType, setCalendarNoticeType] = useState<"success" | "error" | "info">("info")
 
   useEffect(() => {
     let cancelled = false
-    fetch("/api/calendar/google/status")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled) setGoogleCalendarConnected(Boolean(data?.connected))
+    Promise.all([
+      fetch("/api/calendar/google/status").then((res) => (res.ok ? res.json() : { connected: false })),
+      fetch("/api/calendar/feed/token").then((res) => (res.ok ? res.json() : { feedUrl: "" })),
+    ])
+      .then(([statusData, feedData]) => {
+        if (cancelled) return
+        setGoogleCalendarConnected(Boolean(statusData?.connected))
+        setCalendarFeedUrl(typeof feedData?.feedUrl === "string" ? feedData.feedUrl : "")
       })
       .catch(() => {
-        if (!cancelled) setGoogleCalendarConnected(false)
+        if (cancelled) return
+        setGoogleCalendarConnected(false)
+        setCalendarFeedUrl("")
       })
     return () => {
       cancelled = true
@@ -168,14 +175,37 @@ export default function CalendarsPage() {
     setSelectedEvent(event)
   }
 
+  const loadCalendarFeedUrl = async () => {
+    setCalendarFeedLoading(true)
+    try {
+      const res = await fetch("/api/calendar/feed/token")
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || typeof data?.feedUrl !== "string" || !data.feedUrl) {
+        throw new Error(data?.error ?? "Could not generate calendar link")
+      }
+      setCalendarFeedUrl(data.feedUrl)
+      return data.feedUrl as string
+    } catch (error) {
+      setCalendarNoticeType("error")
+      setCalendarNotice(error instanceof Error ? error.message : "Could not generate calendar link")
+      return ""
+    } finally {
+      setCalendarFeedLoading(false)
+    }
+  }
+
   const handleGoogleCalendarSync = async () => {
     setIsSyncing(true)
     window.location.href = "/api/calendar/google/connect?next=/portal/calendars"
   }
 
   const handleAppleCalendarSync = async () => {
-    setCalendarNoticeType("info")
-    setCalendarNotice("Apple Calendar sync is not implemented yet. Google Calendar is available today.")
+    const feedUrl = calendarFeedUrl || (await loadCalendarFeedUrl())
+    if (!feedUrl || typeof window === "undefined") return
+    const webcalUrl = feedUrl.replace(/^https?:\/\//i, "webcal://")
+    window.location.href = webcalUrl
+    setCalendarNoticeType("success")
+    setCalendarNotice("Use the subscription prompt in Apple Calendar to finish connecting your personal calendar feed.")
   }
 
   const handleDisconnectGoogle = async () => {
@@ -197,6 +227,14 @@ export default function CalendarsPage() {
     } finally {
       setIsSyncing(false)
     }
+  }
+
+  const handleCopyCalendarFeed = async () => {
+    const feedUrl = calendarFeedUrl || (await loadCalendarFeedUrl())
+    if (!feedUrl) return
+    await navigator.clipboard.writeText(feedUrl)
+    setCalendarNoticeType("success")
+    setCalendarNotice("Calendar subscription link copied.")
   }
 
   // Helper functions for date navigation
@@ -912,52 +950,15 @@ export default function CalendarsPage() {
                 </button>
               </div>
 
-              {/* Calendar Sync Button */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-                    disabled={isSyncing}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
-                    Sync Calendar
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-white/95 backdrop-blur-lg border-white/30 min-w-[200px]">
-                  <DropdownMenuItem
-                    onClick={googleCalendarConnected ? handleDisconnectGoogle : handleGoogleCalendarSync}
-                    className="cursor-pointer"
-                    disabled={isSyncing}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                        </svg>
-                        <span>Google Calendar</span>
-                      </div>
-                      {googleCalendarConnected && <span className="text-xs text-green-600">Connected</span>}
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={handleAppleCalendarSync}
-                    className="cursor-pointer"
-                    disabled={isSyncing}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>Apple Calendar</span>
-                      </div>
-                      <span className="text-xs text-amber-600">Coming soon</span>
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                variant="outline"
+                className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                disabled={isSyncing}
+                onClick={() => setShowSyncCalendarModal(true)}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
+                Sync Calendar
+              </Button>
             </div>
           </div>
 
@@ -1604,6 +1605,132 @@ export default function CalendarsPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {showSyncCalendarModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+            <div className="w-full max-w-3xl rounded-2xl border border-white/15 bg-[#0f1720] p-6 shadow-2xl">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-2xl font-semibold text-white">Choose a calendar to connect</h3>
+                  <p className="mt-2 text-sm text-white/65">
+                    Pick how you want this user&apos;s Pantheon calendar to sync. Google uses direct OAuth. Apple uses your private subscription link.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSyncCalendarModal(false)}
+                  className="rounded-full border border-white/15 bg-white/5 p-2 text-white/70 hover:bg-white/10 hover:text-white"
+                  aria-label="Close calendar sync modal"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-lg bg-white/10 p-2">
+                        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-white">Google Calendar</h4>
+                        <p className="text-sm text-white/60">Push events directly to this user&apos;s Google Calendar.</p>
+                      </div>
+                    </div>
+                    {googleCalendarConnected && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2 py-1 text-xs text-green-300">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Connected
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-5 flex gap-2">
+                    {googleCalendarConnected ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleDisconnectGoogle}
+                        disabled={isSyncing}
+                        className="border-white/20 bg-white/10 text-white hover:bg-white/20"
+                      >
+                        {isSyncing ? "Disconnecting..." : "Disconnect Google"}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={handleGoogleCalendarSync}
+                        disabled={isSyncing}
+                        className="bg-white/10 text-white hover:bg-white/20"
+                      >
+                        Connect Google Calendar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-lg bg-white/10 p-2">
+                      <Calendar className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-white">Apple Calendar</h4>
+                      <p className="text-sm text-white/60">
+                        Subscribe this user&apos;s calendar feed in Apple Calendar, iPhone, iPad, or any calendar app that supports subscription URLs.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleAppleCalendarSync}
+                      disabled={isSyncing || calendarFeedLoading}
+                      className="bg-white/10 text-white hover:bg-white/20"
+                    >
+                      {calendarFeedLoading ? "Preparing..." : "Open in Apple Calendar"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCopyCalendarFeed}
+                      disabled={calendarFeedLoading}
+                      className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy Link
+                    </Button>
+                    {calendarFeedUrl && (
+                      <a
+                        href={calendarFeedUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10"
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Open Feed
+                      </a>
+                    )}
+                  </div>
+                  {calendarFeedUrl && (
+                    <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-3">
+                      <p className="mb-2 text-xs uppercase tracking-wide text-white/45">Subscription URL</p>
+                      <p className="break-all text-xs text-white/75">{calendarFeedUrl}</p>
+                    </div>
+                  )}
+                  <p className="mt-3 text-xs text-white/45">
+                    Apple Calendar uses a private subscription link instead of OAuth. Each user gets their own link.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}

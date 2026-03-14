@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { CheckCircle2, Circle, Video, ChevronLeft } from "lucide-react"
+import { CheckCircle2, Circle, Video, ChevronLeft, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { CourseWithOutline, LessonRow, UserLessonProgressRow } from "@/lib/courses-db"
@@ -120,10 +120,19 @@ export function LessonViewer({ course, lesson, progress, courseProgress, userId 
                 <video src={lesson.video_url} controls className="max-w-full max-h-full" />
               )
             ) : (
-              <div className="flex flex-col items-center gap-2 text-white/50">
-                <Video className="h-16 w-16" />
-                <span className="text-sm">Video placeholder</span>
-                <span className="text-xs">Add a video URL in admin to display content.</span>
+              <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 px-6 text-center text-white/80">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
+                  <FileText className="h-8 w-8 text-white/80" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-lg font-semibold text-white">Lesson notes and guided walkthrough</h2>
+                  <p className="text-sm text-white/70">
+                    This lesson does not have a video attached yet, but the written guidance below is still available for agents to review.
+                  </p>
+                  <p className="text-xs text-white/50">
+                    A lesson video can be added later from Admin if you want this section to play media instead.
+                  </p>
+                </div>
               </div>
             )}
           </div>

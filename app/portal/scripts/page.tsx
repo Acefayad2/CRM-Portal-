@@ -23,25 +23,13 @@ import {
   MessageSquare,
   RotateCcw,
 } from "lucide-react"
-import { mockScripts, scriptCategories, type Script } from "@/lib/scripts-data"
-
-const STORAGE_KEY = "pantheon-scripts"
-
-function loadScriptsFromStorage(): Script[] {
-  if (typeof window === "undefined") return mockScripts
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (!stored) return mockScripts
-    const parsed = JSON.parse(stored) as Script[]
-    return Array.isArray(parsed) ? parsed : mockScripts
-  } catch {
-    return mockScripts
-  }
-}
+import { scriptCategories, type Script } from "@/lib/scripts-data"
 
 export default function ScriptsPage() {
-  const [scripts, setScripts] = useState<Script[]>(mockScripts)
+  const [scripts, setScripts] = useState<Script[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [pageError, setPageError] = useState<string | null>(null)
+  const [pageInfo, setPageInfo] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [selectedScript, setSelectedScript] = useState<Script | null>(null)
@@ -55,13 +43,29 @@ export default function ScriptsPage() {
       const res = await fetch("/api/scripts")
       if (res.ok) {
         const { scripts: data } = await res.json()
+        setPageError(null)
+        setPageInfo(null)
         if (Array.isArray(data)) setScripts(data)
         return
       }
+      const data = await res.json().catch(() => ({}))
+      setScripts([])
+      if (res.status === 401) {
+        setPageInfo("Sign in to access your script library.")
+        setPageError(null)
+        return
+      }
+      if (typeof data.error === "string") {
+        setPageError(data.error)
+      } else {
+        setPageError("Failed to load scripts.")
+      }
+      setPageInfo(null)
     } catch {
-      // fall through
+      setScripts([])
+      setPageInfo(null)
+      setPageError("Network error while loading scripts.")
     }
-    setScripts(loadScriptsFromStorage())
   }, [])
 
   useEffect(() => {
@@ -70,17 +74,8 @@ export default function ScriptsPage() {
     return () => { mounted = false }
   }, [fetchScripts])
 
-  useEffect(() => {
-    if (scripts.length > 0) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(scripts))
-      } catch {
-        // ignore
-      }
-    }
-  }, [scripts])
-
   const handleAddScript = async (script: Script) => {
+    setPageError(null)
     if (editingScript) {
       try {
         const res = await fetch(`/api/scripts/${editingScript.id}`, {
@@ -100,23 +95,13 @@ export default function ScriptsPage() {
           setEditingScript(null)
           return
         }
+        const data = await res.json().catch(() => ({}))
+        setPageError(data?.error ?? "Failed to update script.")
+        return
       } catch {
-        // fall through to local
+        setPageError("Network error while updating script.")
+        return
       }
-      setScripts((prev) =>
-        prev.map((item) =>
-          item.id === editingScript.id
-            ? { ...item, ...script, id: editingScript.id, updatedAt: new Date().toISOString() }
-            : item
-        )
-      )
-      setSelectedScript((prev) =>
-        prev?.id === editingScript.id
-          ? { ...prev, ...script, id: editingScript.id, updatedAt: new Date().toISOString() }
-          : prev
-      )
-      setEditingScript(null)
-      return
     }
 
     try {
@@ -138,11 +123,11 @@ export default function ScriptsPage() {
         setScripts((prev) => [created, ...prev])
         return
       }
+      const data = await res.json().catch(() => ({}))
+      setPageError(data?.error ?? "Failed to create script.")
     } catch {
-      // fall through to local
+      setPageError("Network error while creating script.")
     }
-    const newScript: Script = { ...script, id: script.id || `script-${Date.now()}` }
-    setScripts((prev) => [newScript, ...prev])
   }
 
   const categoryIcons = {
@@ -186,26 +171,32 @@ export default function ScriptsPage() {
         setSelectedScript((prev) => (prev?.id === updated.id ? updated : prev))
         return
       }
-    } catch {
-      // fall back to local state
-    }
-    setScripts((prev) =>
-      prev.map((item) =>
-        item.id === script.id
-          ? { ...item, usageCount: item.usageCount + 1, updatedAt: new Date().toISOString() }
-          : item
-      )
-    )
-    setSelectedScript((prev) =>
-      prev?.id === script.id
-        ? { ...prev, usageCount: prev.usageCount + 1, updatedAt: new Date().toISOString() }
-        : prev
-    )
+    } catch {}
   }, [])
 
   const handleCopyScript = async (script: Script) => {
     await navigator.clipboard.writeText(script.content)
     void incrementUsage(script)
+  }
+
+  const handleDeleteScript = async (script: Script) => {
+    const confirmed = window.confirm(`Delete "${script.title}"?`)
+    if (!confirmed) return
+
+    setPageError(null)
+    try {
+      const res = await fetch(`/api/scripts/${script.id}`, { method: "DELETE" })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setPageError(data?.error ?? "Failed to delete script.")
+        return
+      }
+      setScripts((prev) => prev.filter((item) => item.id !== script.id))
+      setSelectedScript((prev) => (prev?.id === script.id ? null : prev))
+      if (selectedScript?.id === script.id) setViewerOpen(false)
+    } catch {
+      setPageError("Network error while deleting script.")
+    }
   }
 
   return (
@@ -221,6 +212,18 @@ export default function ScriptsPage() {
             New Script
           </Button>
         </div>
+
+        {pageError && (
+          <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {pageError}
+          </div>
+        )}
+
+        {pageInfo && (
+          <div className="rounded-lg border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-200">
+            {pageInfo}
+          </div>
+        )}
 
         {/* Search and Filters */}
         <Card>
@@ -350,6 +353,7 @@ export default function ScriptsPage() {
                     onView={handleViewScript}
                     onEdit={handleEditScript}
                     onCopy={handleCopyScript}
+                    onDelete={handleDeleteScript}
                   />
                 ))}
               </div>
@@ -363,6 +367,7 @@ export default function ScriptsPage() {
           onOpenChange={setViewerOpen}
           onEdit={handleEditScript}
           onCopy={handleCopyScript}
+          onDelete={handleDeleteScript}
           onSendToClients={() => setSendToClientsOpen(true)}
         />
         <SendScriptToClientsDialog

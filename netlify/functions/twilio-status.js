@@ -7,7 +7,19 @@ exports.handler = async (event) => {
 
     console.log("Status callback:", { MessageSid, MessageStatus });
 
-    // TODO: update message status in Supabase later
+    const baseUrl =
+      process.env.URL ||
+      process.env.DEPLOY_URL ||
+      process.env.SITE_URL ||
+      process.env.NEXT_PUBLIC_APP_URL;
+
+    if (baseUrl) {
+      await fetch(`${baseUrl.replace(/\/$/, "")}/api/twilio/webhook`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: event.body || "",
+      });
+    }
 
     return { statusCode: 200, body: "ok" };
   } catch (e) {

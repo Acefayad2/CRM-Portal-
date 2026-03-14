@@ -3,8 +3,8 @@
  * PATCH /api/meetings/[id] - update meeting (host): title, status, deck_id
  */
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
 import { isSupabaseConfigured } from "@/lib/supabase"
+import { resolvePresentationActor } from "@/lib/presentation-actor"
 
 export async function GET(
   _request: Request,
@@ -15,11 +15,10 @@ export async function GET(
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Not configured" }, { status: 503 })
     }
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const actor = await resolvePresentationActor()
+    if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { data, error } = await supabase
+    const { data, error } = await actor.client
       .from("meetings")
       .select("id, host_user_id, title, status, starts_at, ends_at, created_at, deck_id")
       .eq("id", id)
@@ -28,7 +27,7 @@ export async function GET(
     if (error || !data) {
       return NextResponse.json({ error: "Meeting not found" }, { status: 404 })
     }
-    if (data.host_user_id !== user.id) {
+    if (data.host_user_id !== actor.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
     return NextResponse.json(data)
@@ -47,17 +46,16 @@ export async function PATCH(
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Not configured" }, { status: 503 })
     }
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const actor = await resolvePresentationActor()
+    if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await actor.client
       .from("meetings")
       .select("id, host_user_id")
       .eq("id", id)
       .single()
 
-    if (fetchError || !existing || existing.host_user_id !== user.id) {
+    if (fetchError || !existing || existing.host_user_id !== actor.userId) {
       return NextResponse.json({ error: "Meeting not found" }, { status: 404 })
     }
 
@@ -78,11 +76,11 @@ export async function PATCH(
     if (body.deck_id !== undefined) updates.deck_id = body.deck_id === null || body.deck_id === "" ? null : body.deck_id
 
     if (Object.keys(updates).length === 0) {
-      const { data } = await supabase.from("meetings").select("*").eq("id", id).single()
+      const { data } = await actor.client.from("meetings").select("*").eq("id", id).single()
       return NextResponse.json(data)
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await actor.client
       .from("meetings")
       .update(updates)
       .eq("id", id)
