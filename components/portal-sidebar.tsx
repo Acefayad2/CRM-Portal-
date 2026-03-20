@@ -28,12 +28,14 @@ import {
   PanelLeft,
   ShieldCheck,
   Video,
+  Bot,
 } from "lucide-react"
 import { useSidebar } from "@/contexts/sidebar-context"
 import { getUserInitials } from "@/lib/avatar-initials"
 
 const baseNavigation = [
   { name: "Dashboard", href: "/portal", icon: LayoutDashboard },
+  { name: "Agents", href: "/portal/agents", icon: Bot },
   { name: "Presentations", href: "/portal/meetings", icon: Video },
   { name: "Calendars", href: "/portal/calendars", icon: Calendar },
   { name: "Clients", href: "/portal/clients", icon: Users },
