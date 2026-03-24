@@ -2,7 +2,7 @@
 
 /**
  * Dev-only Test SMS page
- * Navigate to /test-sms to send test texts and verify Twilio integration.
+ * Navigate to /test-sms to send test texts and verify Telnyx integration.
  */
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -112,7 +112,7 @@ export default function TestSMSPage() {
               >
                 {result.success ? (
                   <p className="text-sm">
-                    <strong>Success!</strong> Message SID: <code className="font-mono text-xs">{result.sid}</code>
+                    <strong>Success!</strong> Message ID: <code className="font-mono text-xs">{result.sid}</code>
                   </p>
                 ) : (
                   <p className="text-sm text-destructive">
@@ -132,15 +132,14 @@ export default function TestSMSPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>1. <code>npm install twilio</code> (already done)</p>
+            <p>1. Add Telnyx env vars to .env.local (see SMS_SETUP.md)</p>
             <p>2. <code>npm run dev</code></p>
             <p>3. <code>ngrok http 3000</code></p>
-            <p>4. Add <code>TWILIO_WEBHOOK_BASE_URL</code> to .env.local with your ngrok URL</p>
-            <p>5. In Twilio Console → Phone Numbers → [Your Number]:</p>
+            <p>4. In Telnyx Portal → Messaging → Messaging Profiles:</p>
             <ul className="ml-4 list-disc">
-              <li>A MESSAGE COMES IN → https://&lt;ngrok&gt;/api/twilio/webhook</li>
-              <li>STATUS CALLBACK URL → https://&lt;ngrok&gt;/api/twilio/webhook</li>
+              <li>Webhook URL → https://&lt;ngrok&gt;/api/telnyx/webhook</li>
             </ul>
+            <p>5. Required env vars: <code>TELNYX_API_KEY</code>, <code>TELNYX_PHONE_NUMBER</code>, <code>TELNYX_WEBHOOK_URL</code></p>
           </CardContent>
         </Card>
       </div>
