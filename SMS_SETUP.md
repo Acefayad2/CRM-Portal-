@@ -11,8 +11,8 @@ Add the following to your `.env.local` (local dev) or your hosting platform's en
 ```env
 # Required
 TELNYX_API_KEY=<your_telnyx_api_key>
-TELNYX_PHONE_NUMBER=+12406366794
-TELNYX_WEBHOOK_URL=https://pantheonportal.com/api/telnyx/webhook
+TELNYX_PHONE_NUMBER=+1XXXXXXXXXX
+TELNYX_WEBHOOK_URL=https://your-domain.com/api/telnyx/webhook
 
 # Optional — only needed if using a Telnyx Messaging Profile
 TELNYX_MESSAGING_PROFILE_ID=<your_messaging_profile_id>
@@ -35,7 +35,7 @@ TELNYX_MESSAGING_PROFILE_ID=<your_messaging_profile_id>
 2. Search for available numbers in your desired area code
 3. Select a number and complete the purchase
 4. The number will appear under **Numbers** → **My Numbers**
-5. Copy it in E.164 format (e.g. `+12406366794`) and set it as `TELNYX_PHONE_NUMBER`
+5. Copy it in E.164 format (e.g. `+1XXXXXXXXXX`) and set it as `TELNYX_PHONE_NUMBER`
 
 ---
 
@@ -44,7 +44,7 @@ TELNYX_MESSAGING_PROFILE_ID=<your_messaging_profile_id>
 All inbound SMS and delivery status events are handled at:
 
 ```
-https://pantheonportal.com/api/telnyx/webhook
+https://your-domain.com/api/telnyx/webhook
 ```
 
 ### Configure in Telnyx Portal
@@ -52,8 +52,8 @@ https://pantheonportal.com/api/telnyx/webhook
 1. Go to **Messaging** → **Messaging Profiles**
 2. Create or edit a Messaging Profile
 3. Under **Webhooks**, set:
-   - **Inbound Message Webhook URL**: `https://pantheonportal.com/api/telnyx/webhook`
-   - **Outbound Message Webhook URL**: `https://pantheonportal.com/api/telnyx/webhook`
+   - **Inbound Message Webhook URL**: `https://your-domain.com/api/telnyx/webhook`
+   - **Outbound Message Webhook URL**: `https://your-domain.com/api/telnyx/webhook`
 4. Assign your phone number to this Messaging Profile
 5. Optionally copy the Messaging Profile ID and set it as `TELNYX_MESSAGING_PROFILE_ID`
 
