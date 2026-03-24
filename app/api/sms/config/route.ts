@@ -5,8 +5,6 @@
 import { NextResponse } from "next/server"
 
 export async function GET() {
-  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER
-  const from = messagingServiceSid ? "Messaging Service" : fromNumber ?? "Not configured"
-  return NextResponse.json({ from })
+  const fromNumber = process.env.TELNYX_PHONE_NUMBER ?? "Not configured"
+  return NextResponse.json({ from: fromNumber })
 }
