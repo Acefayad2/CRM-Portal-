@@ -4,7 +4,7 @@
  * to the phone number on file. Message: "[Requester name] has requested a time slot at [timeslot]."
  */
 import { NextResponse } from "next/server"
-import Twilio from "twilio"
+import { sendTelnyxSms } from "@/lib/telnyx"
 import { createClient } from "@/lib/supabase/server"
 import { getWorkspaceForUser, canSendSms, recordSmsSent } from "@/lib/workspace"
 import { supabase, isSupabaseConfigured } from "@/lib/supabase"
@@ -142,52 +142,27 @@ export async function POST(request: Request) {
     const timeSlot = `${dateFormatted}, ${startTime}–${endTime}`
     const messageBody = `${requesterName} has requested a time slot on your calendar: ${timeSlot}.${title ? ` "${title}"` : ""}`
 
-    const accountSid = process.env.TWILIO_ACCOUNT_SID
-    const authToken = process.env.TWILIO_AUTH_TOKEN
-    const fromNumber = process.env.TWILIO_PHONE_NUMBER
-    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
-
-    if (!accountSid || !authToken) {
+    if (!process.env.TELNYX_API_KEY) {
       return NextResponse.json({ error: "SMS is not configured" }, { status: 500 })
     }
-    if (!messagingServiceSid && !fromNumber) {
-      return NextResponse.json({ error: "Set TWILIO_PHONE_NUMBER or TWILIO_MESSAGING_SERVICE_SID" }, { status: 500 })
+    if (!process.env.TELNYX_PHONE_NUMBER) {
+      return NextResponse.json({ error: "Set TELNYX_PHONE_NUMBER in environment variables" }, { status: 500 })
     }
 
-    const twilioClient = Twilio(accountSid, authToken)
-    const params: Record<string, string> = {
-      to: teammatePhone,
-      body: messageBody,
+    const result = await sendTelnyxSms({ to: teammatePhone, body: messageBody })
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error ?? "Failed to send SMS" }, { status: 500 })
     }
-    if (messagingServiceSid) {
-      params.messagingServiceSid = messagingServiceSid
-    } else {
-      params.from = fromNumber!
-    }
-    const webhookBase = process.env.TWILIO_WEBHOOK_BASE_URL
-    if (webhookBase) {
-      params.statusCallback = `${webhookBase}/api/twilio/webhook`
-    }
-
-    const twilioMessage = await twilioClient.messages.create(params)
-    const fromPhone = fromNumber ?? "(Messaging Service)"
-
     await recordSmsSent(workspaceId)
     await supabase.from("sms_logs").insert({
       workspace_id: workspaceId,
       to_phone: teammatePhone,
-      from_phone: fromPhone,
+      from_phone: process.env.TELNYX_PHONE_NUMBER ?? "",
       body: messageBody,
-      provider_message_id: twilioMessage.sid,
+      provider_message_id: result.messageId ?? null,
     })
-
     await sendTimeSlotRequestEmail()
-
-    return NextResponse.json({
-      ok: true,
-      smsSent: true,
-      sid: twilioMessage.sid,
-    })
+    return NextResponse.json({ ok: true, smsSent: true, sid: result.messageId })
   } catch (err) {
     console.error("[api/calendar/time-slot-request] Error:", err)
     return NextResponse.json(
