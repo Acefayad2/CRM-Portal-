@@ -9,37 +9,20 @@ import { hasSupabaseBrowserEnv } from "@/lib/supabase/env"
 import { supabase } from "@/lib/supabase"
 import { validatePhone } from "@/lib/sms-utils"
 import { NextResponse } from "next/server"
-import Twilio from "twilio"
+import { sendTelnyxSms } from "@/lib/telnyx"
 
 function generateCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000))
 }
 
 async function sendVerificationSms(to: string, code: string): Promise<{ ok: boolean; error?: string }> {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID
-  const authToken = process.env.TWILIO_AUTH_TOKEN
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER
-  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
-
-  if (!accountSid || !authToken) {
-    return { ok: false, error: "SMS is not configured. Please contact support." }
-  }
-  if (!messagingServiceSid && !fromNumber) {
-    return { ok: false, error: "SMS sender is not configured. Please contact support." }
-  }
-
-  try {
-    const client = Twilio(accountSid, authToken)
-    const body = `Your Pantheon verification code is: ${code}. Valid for 10 minutes.`
-    const params: Record<string, string> = { to, body }
-    if (messagingServiceSid) params.messagingServiceSid = messagingServiceSid
-    else params.from = fromNumber!
-    await client.messages.create(params)
-    return { ok: true }
-  } catch (err) {
-    console.error("[api/auth/signup] Twilio error:", err)
+  const body = `Your Pantheon verification code is: ${code}. Valid for 10 minutes.`
+  const result = await sendTelnyxSms({ to, body })
+  if (!result.ok) {
+    console.error("[api/auth/signup] Telnyx error:", result.error)
     return { ok: false, error: "Failed to send verification code. Please try again." }
   }
+  return { ok: true }
 }
 
 export async function POST(request: Request) {
