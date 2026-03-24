@@ -1,12 +1,15 @@
 [build]
   functions = "netlify/functions"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "TELNYX_PHONE_NUMBER,TELNYX_WEBHOOK_URL"
+
 [[redirects]]
-  from = "/api/twilio/inbound"
-  to = "/.netlify/functions/twilio-inbound"
+  from = "/api/telnyx/inbound"
+  to = "/.netlify/functions/telnyx-inbound"
   status = 200
 
 [[redirects]]
-  from = "/api/twilio/status"
-  to = "/.netlify/functions/twilio-status"
+  from = "/api/telnyx/status"
+  to = "/.netlify/functions/telnyx-status"
   status = 200
