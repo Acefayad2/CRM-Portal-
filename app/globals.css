@@ -142,9 +142,7 @@
 
 /* Portal surfaces */
 .portal-shell {
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 32%),
-    linear-gradient(180deg, rgba(2, 6, 23, 0.28), rgba(2, 6, 23, 0.56));
+  background: #020617;
 }
 
 .portal-sidebar-wrapper [data-calendar-sidebar],
