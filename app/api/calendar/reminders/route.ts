@@ -8,7 +8,7 @@
  * Optional: pass CRON_SECRET in header "x-cron-secret" or query "secret" to protect the endpoint.
  */
 import { NextResponse } from "next/server"
-import Twilio from "twilio"
+import { sendTelnyxSms } from "@/lib/telnyx"
 import { supabase, isSupabaseConfigured } from "@/lib/supabase"
 import { canSendSms, recordSmsSent } from "@/lib/workspace"
 import { validatePhone } from "@/lib/sms-utils"
@@ -37,7 +37,7 @@ function formatEventTime(date: string, startTime: string, endTime: string): stri
     day: "numeric",
     year: "numeric",
   })
-  return `${dateFormatted}, ${startTime}–${endTime}`
+  return `${dateFormatted}, ${startTime}\u2013${endTime}`
 }
 
 export async function POST(request: Request) {
@@ -56,18 +56,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not configured" }, { status: 503 })
     }
 
-    const accountSid = process.env.TWILIO_ACCOUNT_SID
-    const authToken = process.env.TWILIO_AUTH_TOKEN
-    const fromNumber = process.env.TWILIO_PHONE_NUMBER
-    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
-    const smsConfigured = !!(accountSid && authToken && (messagingServiceSid || fromNumber))
+    const smsConfigured = !!(process.env.TELNYX_API_KEY && process.env.TELNYX_PHONE_NUMBER)
     const emailConfigured = !!process.env.RESEND_API_KEY
     if (!smsConfigured && !emailConfigured) {
-      return NextResponse.json({ error: "Configure Twilio (SMS) or Resend (email) for reminders" }, { status: 503 })
+      return NextResponse.json({ error: "Configure Telnyx (SMS) or Resend (email) for reminders" }, { status: 503 })
     }
 
-    const twilioClient = smsConfigured ? Twilio(accountSid!, authToken!) : null
-    const fromPhone = fromNumber ?? "(Messaging Service)"
+    const fromPhone = process.env.TELNYX_PHONE_NUMBER ?? ""
 
     const { data: rows, error } = await supabase
       .from("calendar_events")
@@ -133,31 +128,25 @@ export async function POST(request: Request) {
       let sent = 0
       const errors: string[] = []
 
-      if (twilioClient && validPhones.length > 0) {
-        const smsCheck = await canSendSms(workspaceId)
-        if (smsCheck.ok) {
+      if (smsConfigured && validPhones.length > 0) {
+        const smsSendCheck = await canSendSms(workspaceId)
+        if (smsSendCheck.ok) {
           for (const to of validPhones) {
             try {
-              const params: Record<string, string> = {
-                to,
-                body: messageBody,
+              const result = await sendTelnyxSms({ to, body: messageBody })
+              if (result.ok) {
+                await recordSmsSent(workspaceId)
+                await supabase.from("sms_logs").insert({
+                  workspace_id: workspaceId,
+                  to_phone: to,
+                  from_phone: fromPhone,
+                  body: messageBody,
+                  provider_message_id: result.messageId ?? "",
+                })
+                sent++
+              } else {
+                errors.push(`${to}: ${result.error ?? "Send failed"}`)
               }
-              if (messagingServiceSid) params.messagingServiceSid = messagingServiceSid
-              else params.from = fromNumber!
-
-              const webhookBase = process.env.TWILIO_WEBHOOK_BASE_URL
-              if (webhookBase) params.statusCallback = `${webhookBase}/api/twilio/webhook`
-
-              const twilioMessage = await twilioClient.messages.create(params)
-              await recordSmsSent(workspaceId)
-              await supabase.from("sms_logs").insert({
-                workspace_id: workspaceId,
-                to_phone: to,
-                from_phone: fromPhone,
-                body: messageBody,
-                provider_message_id: twilioMessage.sid ?? "",
-              })
-              sent++
             } catch (e) {
               errors.push(`${to}: ${e instanceof Error ? e.message : "Send failed"}`)
             }
@@ -173,7 +162,7 @@ export async function POST(request: Request) {
           day: "numeric",
           year: "numeric",
         })
-        const timePart = `${event.start_time}–${event.end_time}`
+        const timePart = `${event.start_time}\u2013${event.end_time}`
         const { subject, html, text } = renderTemplate(
           template.subject,
           template.body_html,
