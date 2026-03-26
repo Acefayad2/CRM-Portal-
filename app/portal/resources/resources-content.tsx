@@ -113,14 +113,14 @@ export function ResourcesContent({
   return (
     <PortalLayout>
       <div className="space-y-8">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
           {isCollapsed && (
-            <Button type="button" variant="ghost" size="icon" onClick={toggleSidebar} className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors" aria-label="Expand sidebar">
+            <Button type="button" variant="ghost" size="icon" onClick={toggleSidebar} className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors lg:inline-flex" aria-label="Expand sidebar">
               <Menu className="h-5 w-5" />
             </Button>
           )}
-          <div>
-            <h1 className="text-3xl font-bold text-white">Resources</h1>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-white sm:text-3xl">Resources</h1>
             <p className="text-white/70">Training modules, documents, guides, courses, and helpful resources</p>
           </div>
         </div>

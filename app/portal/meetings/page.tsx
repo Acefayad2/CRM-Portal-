@@ -117,10 +117,10 @@ export default function MeetingsPage() {
   return (
     <PortalLayout>
       <section className="min-h-[calc(100vh-2rem)] rounded-[28px] border border-white/10 bg-slate-950/35 shadow-[0_25px_80px_rgba(2,6,23,0.35)] backdrop-blur-md">
-        <div className="space-y-6 p-6 md:p-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white">Presentations</h1>
+        <div className="space-y-6 p-4 sm:p-6 md:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-white sm:text-3xl">Presentations</h1>
               <p className="text-white/70">
                 Your presentations. Create one, upload a slide deck, and share the invite link with viewers.
               </p>
@@ -133,7 +133,7 @@ export default function MeetingsPage() {
                 setCreateDialogOpen(true)
               }}
               disabled={createLoading}
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+              className="w-full shrink-0 bg-white/10 hover:bg-white/20 text-white border-white/20 sm:w-auto"
             >
               <Plus className="h-4 w-4 mr-2" />
               {createLoading ? "Creating..." : "New presentation"}

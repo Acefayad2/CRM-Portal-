@@ -67,6 +67,15 @@ export function PortalSidebar() {
       .catch(() => setUserProfile(null))
   }, [])
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [isMobileMenuOpen])
+
   const navigation = isAdmin ? [adminNavItem, ...baseNavigation] : baseNavigation
 
   const NavLink = ({ item }: { item: (typeof baseNavigation)[0] | typeof adminNavItem }) => {
@@ -103,22 +112,26 @@ export function PortalSidebar() {
   return (
     <TooltipProvider delayDuration={0}>
       {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
+      <div className="lg:hidden fixed left-[max(1rem,env(safe-area-inset-left))] top-[max(1rem,env(safe-area-inset-top))] z-[60]">
         <Button
           variant="outline"
-          size="sm"
+          size="icon"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="bg-background/95 backdrop-blur"
+          className="h-11 w-11 shrink-0 rounded-xl border-white/20 bg-slate-950/90 text-white backdrop-blur-md hover:bg-slate-900"
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="portal-mobile-nav"
         >
-          {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
 
       {/* Sidebar */}
       <div
+        id="portal-mobile-nav"
         data-calendar-sidebar
         className={cn(
-          "fixed inset-y-0 left-0 z-40 border-r border-sidebar-border bg-sidebar/85 backdrop-blur-xl transform transition-all duration-200 ease-in-out lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 max-h-[100dvh] border-r border-sidebar-border bg-sidebar/85 backdrop-blur-xl transform transition-all duration-200 ease-in-out lg:translate-x-0",
+          "overflow-y-auto overscroll-contain shadow-2xl lg:shadow-none",
           isCollapsed ? "w-16" : "w-56",
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
         )}
@@ -221,7 +234,12 @@ export function PortalSidebar() {
 
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
       )}
     </TooltipProvider>
   )

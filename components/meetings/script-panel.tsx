@@ -24,8 +24,8 @@ export function ScriptPanel({
   const text = (notes || meetingScript || "").trim() || "No script or speaker notes for this slide."
 
   return (
-    <div className={`flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] ${className}`}>
-      <div className="flex items-center justify-between border-b border-white/8 px-3 py-2">
+    <div className={`flex flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20 shadow-[0_18px_40px_rgba(2,6,23,0.28)] backdrop-blur-2xl ${className}`}>
+      <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
         <span className="text-xs font-medium uppercase tracking-[0.16em] text-white/55">Script</span>
         <div className="flex items-center gap-1">
           {onFontSizeChange && (
@@ -59,7 +59,7 @@ export function ScriptPanel({
       </div>
       {expanded && (
         <div
-          className={`flex-1 overflow-auto whitespace-pre-wrap px-3 py-3 text-left leading-7 ${darkMode ? "bg-black/35 text-white" : "text-white/88"}`}
+          className={`flex-1 overflow-auto whitespace-pre-wrap px-4 py-4 text-left leading-7 ${darkMode ? "bg-black/35 text-white" : "text-white/88"}`}
           style={{ fontSize: `${fontSize}px` }}
         >
           {text}

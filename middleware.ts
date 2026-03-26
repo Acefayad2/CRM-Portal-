@@ -10,6 +10,10 @@ export async function middleware(request: NextRequest) {
     request: { headers: request.headers },
   })
 
+  if (process.env.NODE_ENV !== "production") {
+    return response
+  }
+
   const env = getSupabaseBrowserEnv()
   if (!env) {
     return response

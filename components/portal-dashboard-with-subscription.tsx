@@ -30,19 +30,19 @@ export function PortalDashboardWithSubscription() {
       <PortalLayout>
         <div className="space-y-8">
           <div className="space-y-1">
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               {isCollapsed && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={toggleSidebar}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                  className="hidden lg:inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
                   aria-label="Expand sidebar"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
               )}
-              <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+              <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Dashboard</h1>
             </div>
             <p className="text-muted-foreground">
               Welcome back! Here&apos;s what&apos;s happening with your clients.

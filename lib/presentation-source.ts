@@ -96,6 +96,18 @@ function toEmbedUrl(rawUrl: string): string {
   return rawUrl
 }
 
+function toUploadedFileEmbedUrl(rawUrl: string, extension: string): string | null {
+  if (OFFICE_EXTENSIONS.has(extension)) {
+    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(rawUrl)}`
+  }
+
+  if (GOOGLE_VIEWER_EXTENSIONS.has(extension)) {
+    return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(rawUrl)}`
+  }
+
+  return null
+}
+
 export function buildPresentationSource(params: {
   signedUrl?: string | null
   storagePathOrUrl?: string | null
@@ -146,26 +158,28 @@ export function buildPresentationSource(params: {
     }
 
     if (OFFICE_EXTENSIONS.has(extension)) {
+      const embedUrl = toUploadedFileEmbedUrl(rawUrl, extension)
       return {
-        kind: "link",
+        kind: embedUrl ? "embed" : "link",
         url: rawUrl,
-        embedUrl: null,
+        embedUrl,
         label,
         canNavigate: false,
         fileName: metadata.fileName ?? null,
-        note: "For reliable in-app presenting, export this deck to PDF first. Google Slides links also work well without storing files long-term.",
+        note: "PowerPoint and Office files will try to render in an embedded viewer. PDF is still the most reliable option for synced in-app presenting.",
       }
     }
 
     if (GOOGLE_VIEWER_EXTENSIONS.has(extension)) {
+      const embedUrl = toUploadedFileEmbedUrl(rawUrl, extension)
       return {
-        kind: "link",
+        kind: embedUrl ? "embed" : "link",
         url: rawUrl,
-        embedUrl: null,
+        embedUrl,
         label,
         canNavigate: false,
         fileName: metadata.fileName ?? null,
-        note: "Keynote and OpenDocument decks do not embed reliably in-browser. Export to PDF for in-app presenting, or use a shared Google Slides link.",
+        note: "Keynote and OpenDocument decks will try to open in an embedded viewer. If the preview fails, export to PDF for the most reliable in-app presentation.",
       }
     }
 

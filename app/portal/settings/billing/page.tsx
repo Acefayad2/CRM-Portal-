@@ -104,12 +104,12 @@ export default function BillingPage() {
   return (
     <PortalLayout>
       <div className="space-y-8">
-        <div className="flex items-center gap-4">
-          <Link href="/portal/settings" className="text-muted-foreground hover:text-foreground">
+        <div className="flex min-w-0 items-start gap-4">
+          <Link href="/portal/settings" className="mt-1 shrink-0 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Billing</h1>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Billing</h1>
             <p className="text-muted-foreground">Manage your subscription and SMS credits</p>
           </div>
         </div>

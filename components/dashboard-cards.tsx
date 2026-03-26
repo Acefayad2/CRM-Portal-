@@ -176,9 +176,9 @@ export function FollowUpsCard() {
           <p className="py-4 text-center text-sm text-muted-foreground">No follow-ups due right now</p>
         ) : (
           followUps.map((contact) => (
-            <div key={contact.id} className="flex items-center justify-between rounded-lg bg-muted/30 p-3">
-              <div className="flex-1">
-                <div className="flex items-center space-x-2">
+            <div key={contact.id} className="flex flex-col gap-3 rounded-lg bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{contact.name}</p>
                   <Badge
                     variant={
@@ -194,14 +194,14 @@ export function FollowUpsCard() {
                 </div>
                 <p className="text-sm text-muted-foreground">{contact.reason}</p>
               </div>
-              <div className="flex space-x-1">
-                <Button size="sm" variant="ghost" onClick={() => handleAction("call", contact)} className="h-8 w-8 p-0">
+              <div className="flex shrink-0 justify-end gap-1 sm:justify-start">
+                <Button size="sm" variant="ghost" onClick={() => handleAction("call", contact)} className="h-9 w-9 p-0 sm:h-8 sm:w-8">
                   <Phone className="h-4 w-4" />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => handleAction("text", contact)} className="h-8 w-8 p-0">
+                <Button size="sm" variant="ghost" onClick={() => handleAction("text", contact)} className="h-9 w-9 p-0 sm:h-8 sm:w-8">
                   <MessageSquare className="h-4 w-4" />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => handleAction("email", contact)} className="h-8 w-8 p-0">
+                <Button size="sm" variant="ghost" onClick={() => handleAction("email", contact)} className="h-9 w-9 p-0 sm:h-8 sm:w-8">
                   <Mail className="h-4 w-4" />
                 </Button>
               </div>

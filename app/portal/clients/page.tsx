@@ -30,31 +30,31 @@ export default function ClientsPage() {
   return (
     <PortalLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Clients</h1>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Clients</h1>
             <p className="text-muted-foreground">
               Manage your client relationships and pipeline. Share contacts with team members via the Share button or the Shared with me tab.
             </p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "list" | "board" | "shared")}>
-              <TabsList>
-                <TabsTrigger value="list" className="flex items-center space-x-2">
-                  <List className="h-4 w-4" />
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
+            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "list" | "board" | "shared")} className="w-full sm:w-auto">
+              <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
+                <TabsTrigger value="list" className="flex items-center gap-2">
+                  <List className="h-4 w-4 shrink-0" />
                   <span>List</span>
                 </TabsTrigger>
-                <TabsTrigger value="board" className="flex items-center space-x-2">
-                  <LayoutGrid className="h-4 w-4" />
+                <TabsTrigger value="board" className="flex items-center gap-2">
+                  <LayoutGrid className="h-4 w-4 shrink-0" />
                   <span>Board</span>
                 </TabsTrigger>
-                <TabsTrigger value="shared" className="flex items-center space-x-2">
+                <TabsTrigger value="shared" className="flex items-center gap-2">
                   <span>Shared with me</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
             <Button
-              className="bg-blue-500 hover:bg-blue-600 text-white"
+              className="w-full shrink-0 bg-blue-500 hover:bg-blue-600 text-white sm:w-auto"
               onClick={() => setAddDialogOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />

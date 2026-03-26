@@ -202,12 +202,12 @@ export default function ScriptsPage() {
   return (
     <PortalLayout>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Scripts Library</h1>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Scripts Library</h1>
             <p className="text-muted-foreground">Access proven scripts for presentations, calls, and communications</p>
           </div>
-          <Button className="flex items-center gap-2" onClick={() => setAddDialogOpen(true)}>
+          <Button className="flex w-full shrink-0 items-center justify-center gap-2 sm:w-auto" onClick={() => setAddDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             New Script
           </Button>

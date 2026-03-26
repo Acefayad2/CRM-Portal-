@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 
@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   title: "Pantheon - Protect Today. Grow Tomorrow.",
   description: "Professional life insurance, IUL, annuities, debt solutions, and retirement planning services.",
   generator: "v0.app",
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 }
 
 export default function RootLayout({

@@ -199,19 +199,19 @@ export default function TeamPage() {
     <PortalLayout>
       <div className="space-y-6">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             {isCollapsed && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                className="hidden lg:inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
                 aria-label="Expand sidebar"
               >
                 <Menu className="h-5 w-5" />
               </Button>
             )}
-            <h1 className="text-3xl font-bold text-foreground">Team</h1>
+            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Team</h1>
           </div>
           <p className="text-muted-foreground">
             View team members and chat with your workspace

@@ -142,8 +142,10 @@ export default function HostMeetingPage() {
       if (data.deck) {
         setDecks((prev) => [data.deck, ...prev])
         await handleSelectDeck(data.deck.id)
+        return data.deck
       }
     } catch (_e) {}
+    return null
   }
 
   if (loading) {
@@ -167,7 +169,7 @@ export default function HostMeetingPage() {
 
   return (
     <PortalLayout>
-      <div className="h-[calc(100vh-2rem)] rounded-lg overflow-hidden border border-white/20 bg-black/40">
+      <div className="-m-6 h-[100dvh] overflow-hidden lg:-m-8">
         <HostMeetingRoom
           meetingId={meetingId}
           meeting={meeting}

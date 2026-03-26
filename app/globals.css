@@ -145,6 +145,12 @@
   background: #020617;
 }
 
+/* Solid base so content never flashes the app body (off-white) during nav or opacity animations */
+.portal-main-surface {
+  background-color: #020617;
+  min-height: 100dvh;
+}
+
 .portal-sidebar-wrapper [data-calendar-sidebar],
 .calendar-page-sidebar [data-calendar-sidebar] {
   background: rgba(15, 23, 42, 0.62) !important;

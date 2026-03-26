@@ -69,17 +69,17 @@ export default function PerformancePage() {
   return (
     <PortalLayout>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Performance Analytics</h1>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Performance Analytics</h1>
             <p className="text-muted-foreground">Track CRM activity, appointments, and close-rate trends across the portal</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button variant="outline" className="flex w-full items-center justify-center gap-2 bg-transparent sm:w-auto">
               <Download className="h-4 w-4" />
               Export Report
             </Button>
-            <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+            <Button variant="outline" className="flex w-full items-center justify-center gap-2 bg-transparent sm:w-auto">
               <Settings className="h-4 w-4" />
               Settings
             </Button>

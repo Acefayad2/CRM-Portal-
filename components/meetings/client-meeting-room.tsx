@@ -87,6 +87,33 @@ export function ClientMeetingRoom({
     updateSlideIndex(next)
   }
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target
+      const isTypingTarget =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+
+      if (isTypingTarget || event.metaKey || event.ctrlKey || event.altKey) return
+      if (!state.allow_client_navigation || !canNavigateSlides || sharedScreen?.active || numSlides <= 1) return
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault()
+        goPrev()
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault()
+        goNext()
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [state.allow_client_navigation, canNavigateSlides, sharedScreen?.active, activeSlideIndex, numSlides])
+
   return (
     <div className="flex h-full flex-col bg-[#09111f]">
       <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">

@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server"
 import { isSupabaseConfigured } from "@/lib/supabase"
 import { resolvePresentationActor } from "@/lib/presentation-actor"
+import { generateQuickLookPdf } from "@/lib/quicklook-preview"
 import { serializePresentationSourceMetadata } from "@/lib/presentation-source"
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
@@ -90,6 +91,54 @@ export async function POST(
     }
 
     const buffer = await file.arrayBuffer()
+
+    if (extension !== "pdf") {
+      const converted = await generateQuickLookPdf({ name: file.name, buffer })
+      if (converted) {
+        const convertedStoragePath = `${actor.userId}/${deckId}/${sanitizeFileName(converted.outputFileName, "pdf")}`
+        const { error: convertedUploadError } = await actor.client.storage
+          .from("slide-decks")
+          .upload(convertedStoragePath, converted.pdfBytes, {
+            contentType: "application/pdf",
+            upsert: true,
+          })
+
+        if (convertedUploadError) {
+          console.error("[api/decks/[id]/upload] converted storage error:", convertedUploadError)
+          return NextResponse.json({ error: convertedUploadError.message || "Upload failed" }, { status: 500 })
+        }
+
+        await actor.client.from("slides").delete().eq("deck_id", deckId)
+
+        const slides = Array.from({ length: converted.pageCount }, (_, i) => ({
+          deck_id: deckId,
+          slide_index: i,
+          storage_path: convertedStoragePath,
+          speaker_notes: null,
+        }))
+
+        const { error: insertError } = await actor.client.from("slides").insert(slides)
+        if (insertError) {
+          console.error("[api/decks/[id]/upload] converted slides insert error:", insertError)
+          return NextResponse.json({ error: "Failed to create slide records" }, { status: 500 })
+        }
+
+        const { data: slideList } = await actor.client
+          .from("slides")
+          .select("id, slide_index, storage_path, speaker_notes")
+          .eq("deck_id", deckId)
+          .order("slide_index", { ascending: true })
+
+        return NextResponse.json({
+          ok: true,
+          storage_path: convertedStoragePath,
+          numPages: converted.pageCount,
+          slides: slideList ?? [],
+          converted: true,
+        })
+      }
+    }
+
     const safeFileName = sanitizeFileName(file.name, extension)
     const storagePath = `${actor.userId}/${deckId}/${safeFileName}`
 

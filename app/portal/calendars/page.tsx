@@ -691,7 +691,7 @@ export default function CalendarsPage() {
         </div>
       </div>
 
-      <div className={`relative min-h-screen w-full overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? "pl-16" : "pl-64"}`}>
+      <div className={`relative min-h-screen w-full overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? "pl-16" : "pl-56"}`}>
 
       {/* Navigation (sits inside main content, respects sidebar padding) */}
       <header
@@ -893,11 +893,11 @@ export default function CalendarsPage() {
 
         {/* Calendar View */}
         <div
-          className={`flex-1 flex flex-col bg-black/70 opacity-0 ${isLoaded ? "animate-fade-in" : ""}`}
+          className={`flex-1 flex flex-col rounded-xl overflow-hidden bg-black/70 opacity-0 ${isLoaded ? "animate-fade-in" : ""}`}
           style={{ animationDelay: "0.6s" }}
         >
           {/* Calendar Controls */}
-          <div className="flex items-center justify-between p-4 border-b border-white/20 bg-black/80 backdrop-blur-md">
+          <div className="mx-4 flex items-center justify-between rounded-t-xl p-4 border-b border-white/20 bg-black/80 backdrop-blur-md">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigateDate("today")}
