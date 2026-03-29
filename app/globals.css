@@ -147,7 +147,7 @@
 
 /* Solid base so content never flashes the app body (off-white) during nav or opacity animations */
 .portal-main-surface {
-  background-color: #020617;
+  background-color: transparent;
   min-height: 100dvh;
 }
 

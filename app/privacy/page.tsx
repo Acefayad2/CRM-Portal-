@@ -72,6 +72,18 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
+              2A. SMS Program Data and Consent
+            </h2>
+            <p className="mt-2 leading-relaxed">
+              Pantheon CRM Portal collects your name, phone number, and (optionally) email when you sign up for
+              our SMS program. We send appointment reminders, account notifications, and support updates. SMS consent
+              is collected using an unchecked checkbox that requires your express written consent before submission.
+              Message &amp; data rates may apply and message frequency varies.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
               3. How We Use Your Information
             </h2>
             <p className="mt-2 leading-relaxed">
@@ -85,6 +97,9 @@ export default function PrivacyPage() {
             </h2>
             <p className="mt-2 leading-relaxed">
               We may share information with service providers who assist us (e.g., hosting, analytics, communications). We require them to use the data only for the purposes we specify and in line with this policy. We may also disclose information when required by law or to protect our rights, safety, or property.
+            </p>
+            <p className="mt-3 leading-relaxed">
+              Mobile information will not be shared with third parties/affiliates for marketing or promotional purposes.
             </p>
           </section>
 
@@ -103,6 +118,9 @@ export default function PrivacyPage() {
             </h2>
             <p className="mt-2 leading-relaxed">
               Depending on where you live, you may have the right to access, correct, delete, or port your personal data, or to object to or restrict certain processing. You can update much of your profile and privacy settings in the portal. To exercise other rights or ask questions, contact us using the details provided below.
+            </p>
+            <p className="mt-3 leading-relaxed">
+              To opt out of SMS messages, reply <strong>STOP</strong> at any time. For help, reply <strong>HELP</strong> or contact us using the support details provided on our website.
             </p>
           </section>
 

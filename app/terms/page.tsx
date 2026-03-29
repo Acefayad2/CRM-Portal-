@@ -54,6 +54,18 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
+              2A. SMS Program Terms (Pantheon CRM Portal Alerts)
+            </h2>
+            <p className="mt-2 leading-relaxed">
+              Program name: <strong>Pantheon CRM Portal Alerts</strong>. By opting in, you agree to receive text messages
+              from Pantheon CRM Portal regarding appointment reminders, account notifications, and support updates.
+              Message &amp; data rates may apply. Message frequency varies. Reply <strong>STOP</strong> to opt out.
+              Reply <strong>HELP</strong> for help.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
               3. Account and Eligibility
             </h2>
             <p className="mt-2 leading-relaxed">
