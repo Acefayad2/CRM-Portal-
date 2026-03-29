@@ -61,7 +61,8 @@ function SignupForm() {
         return
       }
 
-      router.push("/verify-phone")
+      const nextPath = typeof data?.nextPath === "string" ? data.nextPath : "/verify-phone"
+      router.push(nextPath)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed")
     } finally {

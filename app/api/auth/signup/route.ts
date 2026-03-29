@@ -83,6 +83,14 @@ export async function POST(request: Request) {
       )
     }
 
+    const smsVerificationEnabled = Boolean(
+      supabase &&
+      process.env.TELNYX_API_KEY &&
+      process.env.TELNYX_PHONE_NUMBER
+    )
+
+    const phoneVerifiedByDefault = !smsVerificationEnabled
+
     const supabaseAuth = await createClient()
     const { data, error } = await supabaseAuth.auth.signUp({
       email,
@@ -92,7 +100,7 @@ export async function POST(request: Request) {
           full_name: body.name?.trim(),
           phone,
           birthday: body.birthday?.trim() || null,
-          phone_verified: false,
+          phone_verified: phoneVerifiedByDefault,
         },
       },
     })
@@ -122,29 +130,40 @@ export async function POST(request: Request) {
       )
     }
 
-    const code = generateCode()
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+    if (smsVerificationEnabled) {
+      const code = generateCode()
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
-    if (supabase) {
-      await supabase.from("phone_verification_codes").insert({
-        user_id: data.user.id,
-        phone,
-        code,
-        expires_at: expiresAt,
-      })
-    }
+      const { error: insertError } = await supabase
+        .from("phone_verification_codes")
+        .insert({
+          user_id: data.user.id,
+          phone,
+          code,
+          expires_at: expiresAt,
+        })
 
-    const smsResult = await sendVerificationSms(phone, code)
-    if (!smsResult.ok) {
-      return NextResponse.json(
-        { error: smsResult.error ?? "Failed to send verification code." },
-        { status: 503 }
-      )
+      if (insertError) {
+        return NextResponse.json(
+          { error: "Could not initialize phone verification. Please try again." },
+          { status: 503 }
+        )
+      }
+
+      const smsResult = await sendVerificationSms(phone, code)
+      if (!smsResult.ok) {
+        return NextResponse.json(
+          { error: smsResult.error ?? "Failed to send verification code." },
+          { status: 503 }
+        )
+      }
     }
 
     return NextResponse.json({
       success: true,
       user: { id: data.user.id, email: data.user.email },
+      requiresPhoneVerification: smsVerificationEnabled,
+      nextPath: smsVerificationEnabled ? "/verify-phone" : "/join-team?new=1",
     })
   } catch (err) {
     console.error("[api/auth/signup] Error:", err)
