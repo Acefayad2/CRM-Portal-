@@ -61,8 +61,8 @@ export default function HomePage() {
             <div className="hidden md:flex items-center gap-8">
               <Link href="#features" className="text-white/70 hover:text-white transition">Features</Link>
               <Link href="#trial" className="text-white/70 hover:text-white transition">Pricing</Link>
-              <Link href="/auth/login" className="text-white/70 hover:text-white transition">Login</Link>
-              <Link href="/auth/sign-up">
+              <Link href="/login" className="text-white/70 hover:text-white transition">Login</Link>
+              <Link href="/signup">
                 <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
                   Try Free for 2 Weeks
                 </Button>
@@ -96,7 +96,7 @@ export default function HomePage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <Link href="/auth/sign-up">
+            <Link href="/signup">
               <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-lg h-14 px-8">
                 Start Your Free Trial <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
@@ -191,7 +191,7 @@ export default function HomePage() {
             Get full feature access during your 14-day trial. No credit card required to start.
           </p>
           <div className="mt-6">
-            <Link href="/auth/sign-up">
+            <Link href="/signup">
               <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
                 Activate Free Trial <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
