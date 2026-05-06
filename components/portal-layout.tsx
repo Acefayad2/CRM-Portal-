@@ -6,6 +6,7 @@ import { PortalSidebar } from "@/components/portal-sidebar"
 import { BeamsBackground } from "@/components/ui/beams-background"
 import { useSidebar } from "@/contexts/sidebar-context"
 import { cn } from "@/lib/utils"
+import { SiteLegalFooter } from "@/components/site-legal-footer"
 
 interface PortalLayoutProps {
   children: React.ReactNode
@@ -39,12 +40,15 @@ export function PortalLayout({ children }: PortalLayoutProps) {
         <main
           key={pathname}
           className={cn(
-            "min-h-screen min-h-[100dvh]",
+            "flex min-h-screen min-h-[100dvh] flex-col",
             "px-4 pb-[max(2rem,env(safe-area-inset-bottom,0px))] pt-[max(4.5rem,env(safe-area-inset-top,0px))] sm:px-6",
             "lg:p-8 lg:pt-8",
           )}
         >
-          {children}
+          <div className="flex-1">{children}</div>
+          <div className="mt-12 border-t border-white/10 pt-6">
+            <SiteLegalFooter variant="portal" />
+          </div>
         </main>
       </div>
     </BeamsBackground>

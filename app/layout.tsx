@@ -6,13 +6,13 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pantheon-portal.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pantheonportal.com"),
   title: {
     default: "Pantheon CRM Portal | Sales Team Workspace",
     template: "%s | Pantheon CRM Portal",
   },
   description:
-    "Pantheon CRM Portal helps sales teams manage pipeline, meetings, calendars, scripts, and team execution in one secure workspace.",
+    "Protect today. Grow tomorrow. Pantheon CRM Portal helps sales teams manage pipeline, meetings, calendars, scripts, and team execution in one secure workspace.",
   keywords: [
     "sales CRM",
     "sales team portal",
@@ -48,6 +48,10 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: "/apple-touch-icon.png",
+  },
   generator: "v0.app",
 }
 
@@ -65,7 +69,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased" suppressHydrationWarning>{children}</body>
     </html>
   )
 }

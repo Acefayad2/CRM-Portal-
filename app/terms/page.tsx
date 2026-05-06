@@ -1,172 +1,230 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { LegalDocumentShell } from "@/components/legal-document-shell"
+
+const canonical = "https://pantheonportal.com/terms"
 
 export const metadata: Metadata = {
-  title: "Terms of Service | Pantheon",
-  description: "Terms of service for using Pantheon's portal and related services.",
+  title: "Terms and Conditions | Pantheon Portal",
+  description:
+    "Terms and conditions for Pantheon Portal, including SMS consent and A2P 10DLC-related terms for financial services professionals.",
+  alternates: { canonical },
+  openGraph: {
+    title: "Terms and Conditions | Pantheon Portal",
+    description:
+      "Terms governing use of Pantheon Portal, including SMS messaging and opt-in consent.",
+    url: canonical,
+    siteName: "Pantheon Portal",
+    type: "website",
+  },
 }
 
 export default function TermsPage() {
+  const lastUpdated = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
-          <Link
-            href="/"
-            className="text-lg font-semibold text-zinc-900 hover:text-zinc-700 dark:text-white dark:hover:text-zinc-300"
-          >
-            Pantheon
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
-          Terms of Service
+    <LegalDocumentShell>
+      <main>
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
+          Terms and Conditions
         </h1>
-        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          Last updated:{" "}
-          {new Date().toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          Pantheon Portal — Financial services CRM and client communications
         </p>
+        <p className="mt-2 text-zinc-600 dark:text-zinc-400">Last updated: {lastUpdated}</p>
 
-        <div className="mt-10 space-y-8 text-zinc-700 dark:text-zinc-300">
+        <div className="mt-10 space-y-8 text-[15px] leading-relaxed text-zinc-700 dark:text-zinc-300">
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              1. Acceptance of Terms
+              1. Agreement to these terms
             </h2>
-            <p className="mt-2 leading-relaxed">
-              By accessing or using Pantheon&apos;s website, portal, and related services (&quot;Services&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree, do not use the Services. We may update these Terms from time to time; continued use after changes constitutes acceptance.
+            <p className="mt-2">
+              By accessing or using Pantheon Portal and related services (the &quot;Services&quot;), you agree to these Terms
+              and Conditions (&quot;Terms&quot;). If you do not agree, do not use the Services. We may update these Terms;
+              continued use after the effective date of changes constitutes acceptance where permitted by law.
+            </p>
+          </section>
+
+          <section className="rounded-xl border border-indigo-200 bg-indigo-50/80 p-5 dark:border-indigo-500/30 dark:bg-indigo-950/40">
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
+              2. SMS text messages — consent and program terms
+            </h2>
+            <p className="mt-2 font-medium text-zinc-900 dark:text-white">
+              By submitting a form, registering for an account, scheduling through the Services, checking an opt-in box,
+              or otherwise providing prior express consent as presented, you consent to receive SMS text messages from{" "}
+              <strong>Pantheon</strong> regarding Pantheon Portal and related services.
+            </p>
+            <ul className="mt-3 list-inside list-disc space-y-2 pl-1">
+              <li>
+                <strong>Message frequency may vary</strong> based on reminders, onboarding steps, support, account
+                activity, and your settings.
+              </li>
+              <li>
+                <strong>Message and data rates may apply</strong> — check with your wireless carrier.
+              </li>
+              <li>
+                <strong>Reply STOP to opt out</strong> of non-transactional or program SMS where STOP is offered in
+                the message flow, or follow other instructions we provide for preferences.
+              </li>
+              <li>
+                <strong>Reply HELP</strong> for help or contact us via the information on{" "}
+                <a
+                  href="https://pantheonportal.com/"
+                  className="font-medium text-indigo-700 underline decoration-indigo-600/30 underline-offset-4 hover:text-indigo-600 dark:text-indigo-300"
+                >
+                  pantheonportal.com
+                </a>
+                .
+              </li>
+              <li>
+                <strong>Consent to receive SMS is not a condition of purchase</strong> of any good or service, except
+                where you voluntarily opt in to receive messages as described at the point of collection.
+              </li>
+            </ul>
+            <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+              Program use cases may include appointment reminders, onboarding updates, account notifications, customer
+              support, and service follow-ups, consistent with your consent and applicable law.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              2. Description of Services
+              3. Description of services
             </h2>
-            <p className="mt-2 leading-relaxed">
-              Pantheon provides tools for professionals in life insurance, IUL, annuities, and related services, including client relationship management, meetings, courses, scripts, calendars, and communications (e.g., SMS). We reserve the right to modify, suspend, or discontinue any part of the Services with reasonable notice where practicable.
+            <p className="mt-2">
+              Pantheon provides a CRM and communication platform for agents and financial professionals, including
+              tools for client relationships, meetings, scripts, calendars, courses, and communications (including SMS).
+              We may modify or discontinue features with reasonable notice where practicable.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              2A. SMS Program Terms (Pantheon CRM Portal Alerts)
+              4. Accounts and eligibility
             </h2>
-            <p className="mt-2 leading-relaxed">
-              Program name: <strong>Pantheon CRM Portal Alerts</strong>. By opting in, you agree to receive text messages
-              from Pantheon CRM Portal regarding appointment reminders, account notifications, and support updates.
-              Message &amp; data rates may apply. Message frequency varies. Reply <strong>STOP</strong> to opt out.
-              Reply <strong>HELP</strong> for help.
+            <p className="mt-2">
+              You must be able to form a binding contract and meet any eligibility requirements we communicate. You are
+              responsible for your account credentials and activity. Provide accurate information and notify us of
+              unauthorized use.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              3. Account and Eligibility
+              5. Acceptable use
             </h2>
-            <p className="mt-2 leading-relaxed">
-              You must be at least 18 years old and able to form a binding contract to use the Services. You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account. You must provide accurate information and notify us promptly of any unauthorized use.
+            <p className="mt-2">
+              Use the Services lawfully and only as permitted by these Terms and applicable regulations governing your
+              industry (including TCPA, CAN-SPAM, and financial communication rules where they apply). Do not misuse
+              messaging features, send unlawful content, or attempt to bypass security. We may suspend or terminate
+              access for violations.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              4. Acceptable Use
+              6. Intellectual property
             </h2>
-            <p className="mt-2 leading-relaxed">
-              You agree to use the Services only for lawful purposes and in accordance with these Terms. You may not: use the Services in any way that violates applicable laws or third-party rights; transmit harmful, offensive, or illegal content; attempt to gain unauthorized access to our or others&apos; systems or data; interfere with or disrupt the Services; or use the Services for spam or unsolicited communications in violation of applicable rules (e.g., TCPA). We may suspend or terminate accounts that violate these terms.
+            <p className="mt-2">
+              Pantheon and its licensors own the Services. We grant you a limited, non-exclusive license to use the
+              Services for your internal business purposes. You retain rights in your data; you grant us rights necessary
+              to operate and improve the Services.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              5. Intellectual Property and License
+              7. Disclaimers
             </h2>
-            <p className="mt-2 leading-relaxed">
-              Pantheon and its licensors own all rights in the Services (including software, design, and content). We grant you a limited, non-exclusive, non-transferable license to access and use the Services for your internal business use in accordance with these Terms. You retain ownership of data you submit; you grant us the rights necessary to provide, improve, and secure the Services.
+            <p className="mt-2">
+              The Services are provided &quot;as is&quot; and &quot;as available.&quot; We disclaim warranties to the fullest extent
+              permitted by law. The Services do not constitute financial, legal, or insurance advice — obtain advice
+              from qualified professionals.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              6. Disclaimers
+              8. Limitation of liability
             </h2>
-            <p className="mt-2 leading-relaxed">
-              The Services are provided &quot;as is&quot; and &quot;as available.&quot; We disclaim all warranties, express or implied, including merchantability and fitness for a particular purpose. We do not guarantee that the Services will be uninterrupted, error-free, or secure. Professional advice (e.g., legal, financial, insurance) should be obtained from qualified professionals; the Services do not constitute such advice.
+            <p className="mt-2">
+              To the maximum extent permitted by law, Pantheon and its affiliates will not be liable for indirect,
+              incidental, special, consequential, or punitive damages, or for lost profits or data. Our aggregate
+              liability arising out of these Terms or the Services is limited to the amount you paid us in the twelve
+              (12) months before the claim (or one hundred U.S. dollars if greater), except where limitations are
+              prohibited by law.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              7. Limitation of Liability
+              9. Indemnification
             </h2>
-            <p className="mt-2 leading-relaxed">
-              To the maximum extent permitted by law, Pantheon and its affiliates, officers, directors, employees, and agents shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or for loss of profits, data, or goodwill, arising out of or related to your use of the Services. Our total liability for any claims arising from or related to these Terms or the Services shall not exceed the amount you paid us in the twelve (12) months preceding the claim (or one hundred dollars if greater).
+            <p className="mt-2">
+              You agree to indemnify and hold harmless Pantheon and its affiliates from claims arising out of your use of
+              the Services, your content, or your violation of these Terms or applicable law.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              8. Indemnification
+              10. Termination
             </h2>
-            <p className="mt-2 leading-relaxed">
-              You agree to indemnify, defend, and hold harmless Pantheon and its affiliates and their respective officers, directors, employees, and agents from and against any claims, damages, losses, liabilities, and expenses (including reasonable attorneys&apos; fees) arising out of or related to your use of the Services, your violation of these Terms, or your violation of any third-party rights or applicable law.
+            <p className="mt-2">
+              Either party may stop using the Services. We may suspend or terminate access for cause or as described in
+              these Terms. Provisions that should survive termination (including disclaimers, limitations, and
+              indemnities) will survive.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              9. Termination
+              11. Governing law
             </h2>
-            <p className="mt-2 leading-relaxed">
-              We may suspend or terminate your access to the Services at any time for cause (including breach of these Terms) or for convenience with reasonable notice. You may stop using the Services at any time. Upon termination, your right to use the Services ceases; provisions that by their nature should survive (e.g., disclaimers, limitation of liability, indemnification) will survive.
+            <p className="mt-2">
+              These Terms are governed by the laws of the United States and the state in which Pantheon operates,
+              excluding conflict-of-law rules. Courts in that state have exclusive jurisdiction, unless otherwise required
+              by law.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              10. Governing Law and Disputes
+              12. Contact and related policies
             </h2>
-            <p className="mt-2 leading-relaxed">
-              These Terms are governed by the laws of the United States and the state in which Pantheon operates, without regard to conflict of laws principles. Any dispute arising from these Terms or the Services shall be resolved in the courts of that state, and you consent to personal jurisdiction there.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              11. Contact
-            </h2>
-            <p className="mt-2 leading-relaxed">
-              For questions about these Terms of Service, please contact us through the contact information provided on our website or in your account settings.
+            <p className="mt-2">
+              For questions about these Terms, contact us through the information provided at{" "}
+              <a
+                href="https://pantheonportal.com/"
+                className="font-medium text-indigo-600 underline decoration-indigo-600/30 underline-offset-4 hover:text-indigo-500 dark:text-indigo-400"
+              >
+                pantheonportal.com
+              </a>{" "}
+              or in your account. Our{" "}
+              <Link
+                href="/privacy-policy"
+                className="font-medium text-indigo-600 underline decoration-indigo-600/30 underline-offset-4 hover:text-indigo-500 dark:text-indigo-400"
+              >
+                Privacy Policy
+              </Link>{" "}
+              describes how we handle personal information, including SMS-related practices.
             </p>
           </section>
         </div>
 
-        <div className="mt-12 flex flex-wrap gap-4 border-t border-zinc-200 pt-8 dark:border-zinc-800">
+        <div className="mt-10 flex flex-wrap gap-4 border-t border-zinc-200 pt-8 dark:border-zinc-800">
           <Link
             href="/"
             className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
           >
-            ← Back to Pantheon
-          </Link>
-          <Link
-            href="/privacy"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
-          >
-            Privacy Policy
-          </Link>
-          <Link
-            href="/policy/twilio"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
-          >
-            Twilio Use Policy
+            ← Back to Pantheon Portal
           </Link>
         </div>
       </main>
-    </div>
+    </LegalDocumentShell>
   )
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { SiteLegalFooter } from "@/components/site-legal-footer"
 
 export const metadata: Metadata = {
   title: "Twilio Use Policy | Pantheon",
@@ -133,12 +134,13 @@ export default function TwilioPolicyPage() {
           </section>
         </div>
 
-        <div className="mt-12 border-t border-zinc-200 pt-8 dark:border-zinc-800">
+        <div className="mt-12 space-y-6 border-t border-zinc-200 pt-8 dark:border-zinc-800">
+          <SiteLegalFooter variant="legal" />
           <Link
             href="/"
             className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
           >
-            ← Back to Pantheon
+            ← Back to Pantheon Portal
           </Link>
         </div>
       </main>

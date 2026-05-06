@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import type { ReactNode } from "react"
+import { SiteLegalFooter } from "@/components/site-legal-footer"
 
 interface AuthLayoutProps {
   children: ReactNode
@@ -18,8 +19,9 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         priority
       />
       <div className="absolute inset-0 overflow-y-auto">
-        <div className="flex min-h-full min-w-full items-center justify-center p-4">
-          {children}
+        <div className="flex min-h-full min-w-full flex-col p-4">
+          <div className="flex flex-1 items-center justify-center py-8">{children}</div>
+          <SiteLegalFooter variant="auth" className="pb-6" />
         </div>
       </div>
     </div>
