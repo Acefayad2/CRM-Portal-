@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Menu } from "lucide-react"
+import Link from "next/link"
+import { Home, Menu } from "lucide-react"
 import { PortalLayout } from "@/components/portal-layout"
 import {
   PipelineCard,
@@ -30,19 +31,32 @@ export function PortalDashboardWithSubscription() {
       <PortalLayout>
         <div className="space-y-8">
           <div className="space-y-1">
-            <div className="flex min-w-0 items-center gap-3">
-              {isCollapsed && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleSidebar}
-                  className="hidden lg:inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-                  aria-label="Expand sidebar"
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              )}
-              <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Dashboard</h1>
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                {isCollapsed && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleSidebar}
+                    className="hidden lg:inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                    aria-label="Expand sidebar"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                )}
+                <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Dashboard</h1>
+              </div>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="shrink-0 gap-2 border-white/15 bg-white/5 text-foreground hover:bg-white/10"
+              >
+                <Link href="/" aria-label="Go to homepage">
+                  <Home className="h-4 w-4" />
+                  <span className="hidden sm:inline">Homepage</span>
+                </Link>
+              </Button>
             </div>
             <p className="text-muted-foreground">
               Welcome back! Here&apos;s what&apos;s happening with your clients.
