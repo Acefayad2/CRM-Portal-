@@ -16,7 +16,7 @@ import { getAuthErrorMessage } from "@/lib/auth-errors"
 function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const errorParam = searchParams.get("error")
+  const errorParam = searchParams?.get("error") ?? null
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")

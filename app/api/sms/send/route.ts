@@ -58,9 +58,10 @@ export async function POST(request: Request) {
         const { data: { user } } = await authClient.auth.getUser()
         if (user) {
           const membership = await getWorkspaceForUser(user.id)
-          if (membership) {
-            workspaceId = membership.workspace_id
-            const smsCheck = await canSendSms(workspaceId)
+          if (membership && membership.workspace_id) {
+            const wsId: string = membership.workspace_id
+            workspaceId = wsId
+            const smsCheck = await canSendSms(wsId)
             if (!smsCheck.ok) {
               return NextResponse.json({ success: false, error: smsCheck.error }, { status: 403 })
             }

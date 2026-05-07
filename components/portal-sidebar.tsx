@@ -56,7 +56,7 @@ export function PortalSidebar() {
   useEffect(() => {
     fetch("/api/workspaces/members")
       .then((res) => (res.ok ? res.json() : {}))
-      .then((data) => setIsAdmin(data.currentUserRole === "admin"))
+      .then((data: { currentUserRole?: string }) => setIsAdmin(data.currentUserRole === "admin"))
       .catch(() => setIsAdmin(false))
   }, [])
 

@@ -34,7 +34,7 @@ export const COUNTRY_DIAL_CODES: { code: string; dial: string; name: string }[] 
 /** Guess country code from browser locale (e.g. en-US -> US) */
 export function getDefaultCountryCode(): string {
   if (typeof navigator === "undefined") return "US"
-  const lang = navigator.language || (navigator as { languages?: string[] }).languages?.[0] || "en-US"
+  const lang = navigator.language || (navigator as unknown as { languages?: readonly string[] }).languages?.[0] || "en-US"
   const parts = lang.split("-")
   if (parts.length > 1) {
     const code = parts[1]!.toUpperCase()

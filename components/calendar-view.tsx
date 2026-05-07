@@ -16,9 +16,25 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+type CalendarEvent = {
+  id: number
+  title: string
+  startTime: string
+  endTime: string
+  color: string
+  day: number
+  description: string
+  location: string
+  attendees: string[]
+  organizer: string
+  isRecurring?: boolean
+  recurrencePattern?: string
+  recurrenceEndDate?: string
+}
+
 export function CalendarView() {
   // Updated sample calendar events with all events before 4 PM
-  const events = [
+  const events: CalendarEvent[] = [
     {
       id: 1,
       title: "Team Meeting",
@@ -386,7 +402,7 @@ export function CalendarView() {
     const eventToAdd = {
       ...newEvent,
       id: newEvent.id || Date.now(),
-      day: newEvent.day ?? new Date(newEvent.date + "T12:00:00").getDay() || 7,
+      day: newEvent.day ?? (new Date(newEvent.date + "T12:00:00").getDay() || 7),
     }
     setAllEvents((prev) => [...prev, eventToAdd])
 

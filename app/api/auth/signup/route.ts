@@ -130,7 +130,7 @@ export async function POST(request: Request) {
       )
     }
 
-    if (smsVerificationEnabled) {
+    if (smsVerificationEnabled && supabase) {
       const code = generateCode()
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 

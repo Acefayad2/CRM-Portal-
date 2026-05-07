@@ -42,7 +42,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const result = data as { success: boolean; error?: string; pending?: boolean }
+    const result = data as {
+      success: boolean
+      error?: string
+      pending?: boolean
+      workspace_id?: string
+    }
     if (!result.success) {
       return NextResponse.json({ error: result.error ?? "Failed to request" }, { status: 400 })
     }

@@ -24,7 +24,7 @@ type State = {
 
 export default function HostMeetingPage() {
   const params = useParams()
-  const meetingId = typeof params.id === "string" ? params.id : ""
+  const meetingId = typeof params?.id === "string" ? params.id : ""
   const [meeting, setMeeting] = useState<Meeting | null>(null)
   const [deck, setDeck] = useState<Deck>(null)
   const [slides, setSlides] = useState<Slide[]>([])

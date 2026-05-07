@@ -453,7 +453,7 @@ export function HostMeetingRoom({
               </Button>
             </>
           ) : (
-            <Button size="sm" variant="outline" onClick={createInvite} disabled={inviteLoading} className={glassButtonClass}>
+            <Button size="sm" variant="outline" onClick={() => createInvite()} disabled={inviteLoading} className={glassButtonClass}>
               {inviteLoading ? "..." : "Generate invite link"}
             </Button>
           )}

@@ -76,7 +76,6 @@ export function Particles({
   useFrame((state, delta) => {
     state.gl.setRenderTarget(target);
     state.gl.clear();
-    // @ts-expect-error R3F scene camera types are runtime-correct here
     state.gl.render(scene, camera);
     state.gl.setRenderTarget(null);
 
@@ -108,17 +107,14 @@ export function Particles({
   return (
     <>
       {createPortal(
-        // @ts-expect-error shader material is valid at runtime
         <mesh material={simulationMaterial}>
           <bufferGeometry>
             <bufferAttribute attach="attributes-position" args={[positions, 3]} />
             <bufferAttribute attach="attributes-uv" args={[uvs, 2]} />
           </bufferGeometry>
         </mesh>,
-        // @ts-expect-error portal target uses a THREE.Scene instance
         scene,
       )}
-      {/* @ts-expect-error custom shader material on points */}
       <points material={dofPointsMaterial} {...props}>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[particles, 3]} />

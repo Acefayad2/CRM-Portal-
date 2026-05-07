@@ -13,6 +13,13 @@ export function CameraPreview({
   const [error, setError] = useState<string | null>(null)
   const [muted] = useState(true)
 
+  // Keep onFrame in a ref so the camera stream isn't torn down/re-acquired
+  // every time the parent re-renders with a new callback identity.
+  const onFrameRef = useRef(onFrame)
+  useEffect(() => {
+    onFrameRef.current = onFrame
+  }, [onFrame])
+
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
@@ -29,7 +36,8 @@ export function CameraPreview({
     start()
 
     const captureInterval = window.setInterval(() => {
-      if (!onFrame || !video.videoWidth || !video.videoHeight) return
+      const handler = onFrameRef.current
+      if (!handler || !video.videoWidth || !video.videoHeight) return
       const canvas = document.createElement("canvas")
       canvas.width = 320
       canvas.height = 180
@@ -37,14 +45,14 @@ export function CameraPreview({
       if (!ctx) return
       ctx.scale(-1, 1)
       ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height)
-      onFrame(canvas.toDataURL("image/jpeg", 0.55))
+      handler(canvas.toDataURL("image/jpeg", 0.55))
     }, 1500)
 
     return () => {
       window.clearInterval(captureInterval)
       if (stream) stream.getTracks().forEach((t) => t.stop())
     }
-  }, [onFrame])
+  }, [])
 
   if (error) {
     return (

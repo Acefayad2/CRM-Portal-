@@ -4,6 +4,11 @@
 import { supabase } from "@/lib/supabase"
 import type { CourseRow, ModuleRow, LessonRow } from "@/lib/courses-db"
 
+function requireSupabase() {
+  if (!supabase) throw new Error("Supabase admin client is not configured")
+  return supabase
+}
+
 export async function getAdminCourses() {
   if (!supabase) return []
   const { data, error } = await supabase
@@ -57,7 +62,7 @@ export async function createCourse(input: {
   thumbnail_url?: string
   is_published?: boolean
 }) {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from("courses")
     .insert({
       title: input.title,
@@ -77,12 +82,12 @@ export async function updateCourse(
   courseId: string,
   input: Partial<{ title: string; description: string; category: string; level: string; thumbnail_url: string; is_published: boolean }>
 ) {
-  const { error } = await supabase.from("courses").update({ ...input, updated_at: new Date().toISOString() }).eq("id", courseId)
+  const { error } = await requireSupabase().from("courses").update({ ...input, updated_at: new Date().toISOString() }).eq("id", courseId)
   if (error) throw error
 }
 
 export async function createModule(courseId: string, input: { title: string; description?: string; sort_order?: number }) {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from("modules")
     .insert({
       course_id: courseId,
@@ -100,12 +105,12 @@ export async function updateModule(
   moduleId: string,
   input: Partial<{ title: string; description: string; sort_order: number }>
 ) {
-  const { error } = await supabase.from("modules").update({ ...input, updated_at: new Date().toISOString() }).eq("id", moduleId)
+  const { error } = await requireSupabase().from("modules").update({ ...input, updated_at: new Date().toISOString() }).eq("id", moduleId)
   if (error) throw error
 }
 
 export async function deleteModule(moduleId: string) {
-  const { error } = await supabase.from("modules").delete().eq("id", moduleId)
+  const { error } = await requireSupabase().from("modules").delete().eq("id", moduleId)
   if (error) throw error
 }
 
@@ -120,7 +125,7 @@ export async function createLesson(
     duration_seconds?: number
   }
 ) {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from("lessons")
     .insert({
       module_id: moduleId,
@@ -148,11 +153,11 @@ export async function updateLesson(
     duration_seconds: number
   }>
 ) {
-  const { error } = await supabase.from("lessons").update({ ...input, updated_at: new Date().toISOString() }).eq("id", lessonId)
+  const { error } = await requireSupabase().from("lessons").update({ ...input, updated_at: new Date().toISOString() }).eq("id", lessonId)
   if (error) throw error
 }
 
 export async function deleteLesson(lessonId: string) {
-  const { error } = await supabase.from("lessons").delete().eq("id", lessonId)
+  const { error } = await requireSupabase().from("lessons").delete().eq("id", lessonId)
   if (error) throw error
 }

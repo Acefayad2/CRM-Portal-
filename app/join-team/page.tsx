@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 function JoinTeamForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const isNewUser = searchParams.get("new") === "1"
+  const isNewUser = searchParams?.get("new") === "1"
   const [teamCode, setTeamCode] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")

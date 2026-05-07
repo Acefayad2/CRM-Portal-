@@ -26,13 +26,17 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ ok: boolea
   }
   const to = Array.isArray(options.to) ? options.to : [options.to]
   const from = options.from ?? DEFAULT_FROM
+  const html = options.html ?? options.text
+  if (!html && !options.text) {
+    return { ok: false, error: "Email body is required (provide html or text)" }
+  }
   try {
     const { data, error } = await resend.emails.send({
       from,
       to,
       subject: options.subject,
-      html: options.html ?? options.text ?? undefined,
-      text: options.text,
+      html: html ?? "",
+      ...(options.text ? { text: options.text } : {}),
     })
     if (error) {
       return { ok: false, error: error.message }

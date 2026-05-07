@@ -13,6 +13,7 @@ export type CourseRow = {
   thumbnail_url: string | null
   is_published: boolean
   created_at: string
+  updated_at?: string
 }
 
 export type ModuleRow = {
@@ -22,6 +23,7 @@ export type ModuleRow = {
   description: string | null
   sort_order: number
   created_at: string
+  updated_at?: string
 }
 
 export type LessonRow = {
@@ -34,6 +36,7 @@ export type LessonRow = {
   video_url: string | null
   duration_seconds: number | null
   created_at: string
+  updated_at?: string
 }
 
 export type LessonWithModule = LessonRow & { module_title: string; module_sort_order: number }

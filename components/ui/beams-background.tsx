@@ -57,12 +57,16 @@ export function BeamsBackground({
   }
 
   useEffect(() => {
-    const canvas = canvasRef.current
+    const canvasEl = canvasRef.current
     const container = containerRef.current
-    if (!canvas || !container) return
+    if (!canvasEl || !container) return
 
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
+    const context = canvasEl.getContext("2d")
+    if (!context) return
+
+    // Local non-null aliases so closures inside this effect retain narrowing.
+    const canvas: HTMLCanvasElement = canvasEl
+    const ctx: CanvasRenderingContext2D = context
 
     const updateCanvasSize = () => {
       const dpr = window.devicePixelRatio || 1

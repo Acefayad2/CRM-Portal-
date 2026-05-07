@@ -21,7 +21,7 @@ export default function TestSMSPage() {
   useEffect(() => {
     fetch("/api/sms/config")
       .then((r) => (r.ok ? r.json() : {}))
-      .then((data) => setFromNumber(data?.from ?? null))
+      .then((data: { from?: string } | undefined) => setFromNumber(data?.from ?? null))
       .catch(() => setFromNumber(null))
   }, [])
   const [message, setMessage] = useState("Ahoy 👋")

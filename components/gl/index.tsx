@@ -48,9 +48,7 @@ export const GL = ({ hovering }: { hovering: boolean }) => {
           introspect={hovering}
         />
         {/* multisamping 0 can break some WebGL2 RT setups; default 8 is safer */}
-        {/* @ts-expect-error shader pass props are injected by drei effects */}
         <Effects disableGamma>
-          {/* @ts-expect-error shaderPass is provided by postprocessing integration */}
           <shaderPass
             args={[VignetteShader]}
             uniforms-darkness-value={vignetteDarkness}

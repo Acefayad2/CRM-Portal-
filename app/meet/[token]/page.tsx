@@ -7,7 +7,7 @@ import type { PresentationSource } from "@/lib/presentation-source"
 
 export default function MeetPage() {
   const params = useParams()
-  const token = typeof params.token === "string" ? params.token : ""
+  const token = typeof params?.token === "string" ? params.token : ""
   const [data, setData] = useState<{
     meeting: { id: string; title: string; status: string }
     state: {

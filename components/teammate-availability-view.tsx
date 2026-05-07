@@ -19,8 +19,8 @@ interface Teammate {
     startTime: string
     endTime: string
     date: string
-    isVisible: boolean
-    isTimeBlock: boolean
+    isVisible?: boolean
+    isTimeBlock?: boolean
   }>
 }
 

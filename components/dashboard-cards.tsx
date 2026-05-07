@@ -26,6 +26,37 @@ import {
   Info,
 } from "lucide-react"
 
+// Module-level cache so PipelineCard and AppointmentsCard, which both need
+// /api/calendar/events on mount, share a single in-flight request instead
+// of duplicating the network round-trip.
+let cachedEventsPromise: Promise<CalendarEventSummary[]> | null = null
+function fetchCalendarEvents(): Promise<CalendarEventSummary[]> {
+  if (!cachedEventsPromise) {
+    cachedEventsPromise = fetch("/api/calendar/events")
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && Array.isArray(data?.events)) return data.events as CalendarEventSummary[]
+        return [] as CalendarEventSummary[]
+      })
+      .catch(() => [] as CalendarEventSummary[])
+  }
+  return cachedEventsPromise
+}
+
+function useCalendarEvents() {
+  const [events, setEvents] = useState<CalendarEventSummary[]>([])
+  useEffect(() => {
+    let cancelled = false
+    fetchCalendarEvents().then((evts) => {
+      if (!cancelled) setEvents(evts)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return events
+}
+
 function getWeekKey(): string {
   const now = new Date()
   const day = now.getDay()
@@ -49,28 +80,8 @@ function getWeekLabel(): string {
 export function PipelineCard() {
   const { clients } = useClients()
   const { contactedThisWeekCount } = useContactLogs()
-  const [events, setEvents] = useState<CalendarEventSummary[]>([])
+  const events = useCalendarEvents()
   const weekLabel = useMemo(() => getWeekLabel(), [])
-
-  useEffect(() => {
-    let cancelled = false
-    fetch("/api/calendar/events")
-      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-      .then(({ ok, data }) => {
-        if (cancelled) return
-        if (ok && Array.isArray(data?.events)) {
-          setEvents(data.events)
-          return
-        }
-        setEvents([])
-      })
-      .catch(() => {
-        if (!cancelled) setEvents([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const pipelineStatuses = useMemo(
     () => [
@@ -214,28 +225,7 @@ export function FollowUpsCard() {
 }
 
 export function AppointmentsCard() {
-  const [events, setEvents] = useState<CalendarEventSummary[]>([])
-
-  useEffect(() => {
-    let cancelled = false
-    fetch("/api/calendar/events")
-      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-      .then(({ ok, data }) => {
-        if (cancelled) return
-        if (ok && Array.isArray(data?.events)) {
-          setEvents(data.events)
-          return
-        }
-        setEvents([])
-      })
-      .catch(() => {
-        if (!cancelled) setEvents([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
+  const events = useCalendarEvents()
   const upcomingAppointments = useMemo(() => buildUpcomingAppointments(events), [events])
 
   return (
