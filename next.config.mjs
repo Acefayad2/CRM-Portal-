@@ -9,11 +9,6 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: "/",
-        destination: "/portal",
-        permanent: false,
-      },
-      {
         source: "/privacy",
         destination: "/privacy-policy",
         permanent: true,
