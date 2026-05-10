@@ -122,7 +122,7 @@ export function PipelineCard() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                className="h-8 w-8 shrink-0 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                 aria-label="How the pipeline works"
               >
                 <Info className="h-5 w-5" />
@@ -132,10 +132,10 @@ export function PipelineCard() {
               side="left"
               align="start"
               sideOffset={8}
-              className="w-80 border-white/20 bg-black/95 text-white shadow-xl"
+              className="w-80 border-slate-300 bg-white text-slate-900 shadow-xl"
             >
               <h4 className="mb-2 font-semibold">How the pipeline works</h4>
-              <ul className="space-y-2 text-sm text-white/90">
+              <ul className="space-y-2 text-sm text-slate-700">
                 <li><strong>New</strong> reflects clients with `New Lead` status.</li>
                 <li><strong>Contacted</strong> counts unique clients touched this week.</li>
                 <li><strong>Appt Set</strong> uses upcoming calendar events.</li>
@@ -153,7 +153,7 @@ export function PipelineCard() {
               <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${item.color} shadow-lg`}>
                 <span className="text-lg font-bold text-white">{item.count}</span>
               </div>
-              <p className="text-sm font-medium text-white">{item.status}</p>
+              <p className="text-sm font-medium text-slate-900">{item.status}</p>
             </div>
           ))}
         </div>
@@ -329,7 +329,7 @@ export function QuickLinksCard() {
             <Button
               key={link.name}
               variant="outline"
-              className="flex h-auto flex-col items-center space-y-2 border-white/20 bg-transparent p-4 text-white hover:border-white/30 hover:bg-white/10"
+              className="flex h-auto flex-col items-center space-y-2 border-slate-300 bg-white/80 p-4 text-slate-900 hover:border-slate-400 hover:bg-slate-100"
               asChild
             >
               <a href={link.href}>

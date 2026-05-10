@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { SlideViewer } from "./slide-viewer"
 import { ScriptPanel } from "./script-panel"
 import { CameraPreview } from "./camera-preview"
-import { ChevronDown, ChevronLeft, ChevronRight, Copy, Radio, Square, Play, Settings2, Upload, FileText, MonitorUp, MonitorOff, RefreshCw } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight, Copy, Radio, Square, Play, Settings2, Upload, FileText, MonitorUp, MonitorOff, RefreshCw, Mic, Video, Users, MessageCircle, Smile, Share2, Wrench, MoreHorizontal } from "lucide-react"
 import type { PresentationSource } from "@/lib/presentation-source"
 import { getRenderableSlideNotes } from "@/lib/presentation-source"
 import { broadcastMeetingScreenShare, createMeetingLiveChannel, type MeetingLiveSharePayload } from "@/lib/meeting-live-channel"
@@ -55,11 +55,12 @@ export function HostMeetingRoom({
   onCreateDeck?: () => Promise<{ id: string; title: string } | null | void> | { id: string; title: string } | null | void
 }) {
   const [state, setState] = useState(initialState)
-  const [showSetup, setShowSetup] = useState(meeting.status === "draft")
+  const [showSetup, setShowSetup] = useState(false)
   const [showDeckPanel, setShowDeckPanel] = useState(true)
   const [showPresentationPanel, setShowPresentationPanel] = useState(true)
   const [showScriptUploadPanel, setShowScriptUploadPanel] = useState(true)
   const [showLinkPanel, setShowLinkPanel] = useState(true)
+  const [audioMuted, setAudioMuted] = useState(false)
   const [scriptFontSize, setScriptFontSize] = useState(16)
   const [scriptDark, setScriptDark] = useState(false)
   const [meetingScript, setMeetingScript] = useState("")
@@ -76,6 +77,7 @@ export function HostMeetingRoom({
   const [sharedScreen, setSharedScreen] = useState<MeetingLiveSharePayload | null>(null)
   const [screenShareError, setScreenShareError] = useState<string | null>(null)
   const [startingScreenShare, setStartingScreenShare] = useState(false)
+  const [bottomNotice, setBottomNotice] = useState<string | null>(null)
   const lastPublishedFrameRef = useRef<string | null>(null)
   const deckUploadInputRef = useRef<HTMLInputElement | null>(null)
   const scriptUploadInputRef = useRef<HTMLInputElement | null>(null)
@@ -88,6 +90,9 @@ export function HostMeetingRoom({
   const canNavigateSlides = presentationSource?.canNavigate ?? true
   const numSlides = canNavigateSlides ? slides.length : Math.max(slides.length, 1)
   const activeSlideIndex = canNavigateSlides ? Math.min(state.current_slide_index, Math.max(numSlides - 1, 0)) : 0
+  const presenterInitial = (meeting.title?.trim()?.[0] ?? "P").toUpperCase()
+  const presenterDisplayName = "You"
+  const zoomIdleMode = true
   const currentNotes = getRenderableSlideNotes(
     slides.find((s) => s.slide_index === activeSlideIndex)?.speaker_notes ?? null
   )
@@ -264,6 +269,25 @@ export function HostMeetingRoom({
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const notifyBottom = useCallback((message: string) => {
+    setBottomNotice(message)
+    window.setTimeout(() => {
+      setBottomNotice((current) => (current === message ? null : current))
+    }, 1800)
+  }, [])
+
+  const handleChatAction = useCallback(async () => {
+    if (inviteUrl) {
+      navigator.clipboard.writeText(inviteUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1200)
+      notifyBottom("Invite link copied.")
+      return
+    }
+    await createInvite()
+    notifyBottom("Invite link generated.")
+  }, [createInvite, inviteUrl, notifyBottom])
+
   const publishCameraFrame = useCallback(
     async (frame: string) => {
       if (lastPublishedFrameRef.current === frame) return
@@ -331,9 +355,9 @@ export function HostMeetingRoom({
     setShowLinkPanel(nextValue)
   }
 
-  const glassButtonClass =
-    "border-white/14 bg-white/[0.08] text-white shadow-[0_10px_30px_rgba(15,23,42,0.22)] backdrop-blur-xl hover:bg-white/[0.14] hover:border-white/22"
-  const glassPanelClass = "border border-white/10 bg-white/[0.06] shadow-[0_20px_60px_rgba(2,6,23,0.32)] backdrop-blur-2xl"
+  const zoomButtonClass =
+    "border-slate-600 bg-slate-800 text-slate-100 hover:bg-slate-700 hover:border-slate-500"
+  const zoomPanelClass = "border border-slate-700 bg-[#111318] shadow-[0_20px_60px_rgba(2,6,23,0.5)]"
 
   const startLocalScreenShare = useCallback(async () => {
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
@@ -403,17 +427,92 @@ export function HostMeetingRoom({
     }
   }, [stopLocalScreenShare])
 
+  if (zoomIdleMode) {
+    return (
+      <div className="flex h-full flex-col bg-[#0b0b0c]">
+        <div className="h-10 border-b border-slate-800 bg-[#121214]" />
+        <div className="relative flex flex-1 items-center justify-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-semibold text-white shadow-lg">
+            {presenterInitial}
+          </div>
+          <div className="absolute bottom-2 left-3 text-xs text-white/85">{presenterDisplayName}</div>
+        </div>
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-800 bg-[#0f1116]/96 backdrop-blur">
+          <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => { setAudioMuted((v) => !v); notifyBottom(audioMuted ? "Audio unmuted." : "Audio muted.") }} className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                <Mic className="h-4 w-4" />
+                <span>{audioMuted ? "Unmute" : "Mute"}</span>
+              </button>
+              <button type="button" className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                <Video className="h-4 w-4" />
+                <span>Video</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => setShowSetup((v) => !v)} className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                <Users className="h-4 w-4" />
+                <span>Participants</span>
+              </button>
+              <button type="button" onClick={() => { void handleChatAction() }} className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                <MessageCircle className="h-4 w-4" />
+                <span>Chat</span>
+              </button>
+              <button type="button" onClick={() => notifyBottom("Reaction sent.")} className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                <Smile className="h-4 w-4" />
+                <span>React</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (sharedScreen?.active) {
+                    void stopLocalScreenShare()
+                  } else {
+                    void startLocalScreenShare()
+                  }
+                }}
+                className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80"
+              >
+                <Share2 className="h-4 w-4" />
+                <span>{sharedScreen?.active ? "Stop Share" : "Share"}</span>
+              </button>
+              <button type="button" onClick={() => setShowSetup((v) => !v)} className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                <Wrench className="h-4 w-4" />
+                <span>Host tools</span>
+              </button>
+              <button type="button" onClick={() => window.open(`/meet/${meetingId}`, "_blank")} className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                <MoreHorizontal className="h-4 w-4" />
+                <span>More</span>
+              </button>
+            </div>
+
+            <Button size="sm" onClick={startMeeting} className="h-9 border border-emerald-500/50 bg-emerald-600 text-white hover:bg-emerald-500">
+              <Play className="mr-1 h-4 w-4" />
+              Start
+            </Button>
+          </div>
+        </div>
+        {bottomNotice && (
+          <div className="pointer-events-none fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full border border-slate-600 bg-slate-900/95 px-4 py-1.5 text-xs text-slate-100 shadow-xl">
+            {bottomNotice}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="flex h-full flex-col bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_30%),linear-gradient(180deg,#07101d_0%,#09111f_100%)]">
-      <header className="flex items-center justify-between border-b border-white/10 bg-black/10 px-5 py-4 backdrop-blur-xl">
-        <div className="flex min-w-0 items-center gap-3">
+    <div className="flex h-full w-full flex-col overflow-x-hidden bg-[#0b0b0c]">
+      <header className="flex items-center justify-between gap-3 border-b border-slate-800 bg-[#121214] px-3 py-2.5">
+        <div className="flex min-w-0 items-center gap-2">
           <Link href="/portal/meetings">
-            <Button variant="ghost" size="sm" className="text-white/90 hover:bg-white/10">
+            <Button variant="ghost" size="sm" className="text-slate-300 hover:bg-slate-800">
               ← Presentations
             </Button>
           </Link>
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Host room</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Host room</p>
             <h1 className="truncate text-lg font-semibold text-white">{meeting.title}</h1>
           </div>
           {meeting.status === "live" && (
@@ -423,21 +522,21 @@ export function HostMeetingRoom({
             </span>
           )}
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex min-w-0 items-center justify-end gap-2 overflow-x-auto">
           {meeting.status === "draft" && (
             <Button
               size="sm"
               variant="outline"
               onClick={() => setShowSetup((value) => !value)}
-              className={glassButtonClass}
+              className={zoomButtonClass}
             >
               <Settings2 className="mr-1 h-4 w-4" />
               {showSetup ? "Hide settings" : "Show settings"}
             </Button>
           )}
-          {inviteUrl ? (
+          {!zoomIdleMode && inviteUrl ? (
             <>
-              <Button size="sm" variant="outline" onClick={copyInvite} className={glassButtonClass}>
+              <Button size="sm" variant="outline" onClick={copyInvite} className={zoomButtonClass}>
                 <Copy className="mr-1 h-4 w-4" />
                 {copied ? "Copied" : "Invite link"}
               </Button>
@@ -446,54 +545,56 @@ export function HostMeetingRoom({
                 variant="outline"
                 onClick={() => createInvite(true)}
                 disabled={inviteLoading}
-                className={glassButtonClass}
+                className={zoomButtonClass}
               >
                 <RefreshCw className="mr-1 h-4 w-4" />
                 Regenerate
               </Button>
             </>
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => createInvite()} disabled={inviteLoading} className={glassButtonClass}>
+          ) : !zoomIdleMode ? (
+            <Button size="sm" variant="outline" onClick={() => createInvite()} disabled={inviteLoading} className={zoomButtonClass}>
               {inviteLoading ? "..." : "Generate invite link"}
             </Button>
-          )}
-          {inviteError && <span className="text-xs text-red-300">{inviteError}</span>}
-          {!inviteError && inviteExpiresAt && (
+          ) : null}
+          {!zoomIdleMode && inviteError && <span className="text-xs text-red-300">{inviteError}</span>}
+          {!zoomIdleMode && !inviteError && inviteExpiresAt && (
             <span className="text-xs text-white/45">
               Expires {new Date(inviteExpiresAt).toLocaleDateString()} {new Date(inviteExpiresAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
             </span>
           )}
           {meeting.status === "draft" && (
-            <Button size="sm" onClick={startMeeting} className="border border-emerald-300/20 bg-emerald-500/78 text-white shadow-[0_12px_30px_rgba(16,185,129,0.28)] backdrop-blur-xl hover:bg-emerald-400/80">
+            <Button size="sm" onClick={startMeeting} className="border border-emerald-500/50 bg-emerald-600 text-white hover:bg-emerald-500">
               <Play className="mr-1 h-4 w-4" />
               Go live
             </Button>
           )}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              if (sharedScreen?.active) {
-                void stopLocalScreenShare()
-              } else {
-                void startLocalScreenShare()
-              }
-            }}
-            disabled={startingScreenShare}
-            className={glassButtonClass}
-          >
-            {sharedScreen?.active ? (
-              <>
-                <MonitorOff className="mr-1 h-4 w-4" />
-                Stop local share
-              </>
-            ) : (
-              <>
-                <MonitorUp className="mr-1 h-4 w-4" />
-                {startingScreenShare ? "Starting..." : "Share local window"}
-              </>
-            )}
-          </Button>
+          {!zoomIdleMode && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (sharedScreen?.active) {
+                  void stopLocalScreenShare()
+                } else {
+                  void startLocalScreenShare()
+                }
+              }}
+              disabled={startingScreenShare}
+              className={zoomButtonClass}
+            >
+              {sharedScreen?.active ? (
+                <>
+                  <MonitorOff className="mr-1 h-4 w-4" />
+                  Stop local share
+                </>
+              ) : (
+                <>
+                  <MonitorUp className="mr-1 h-4 w-4" />
+                  {startingScreenShare ? "Starting..." : "Share local window"}
+                </>
+              )}
+            </Button>
+          )}
           {meeting.status === "live" && (
             <Button size="sm" onClick={endMeeting} variant="destructive">
               <Square className="mr-1 h-4 w-4" />
@@ -503,13 +604,13 @@ export function HostMeetingRoom({
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-5 p-5">
+      <div className="flex min-h-0 flex-1 gap-2 overflow-hidden p-2">
         <main className="flex min-w-0 flex-1 flex-col">
-          <section className={`flex min-h-[320px] flex-1 flex-col rounded-[2rem] ${glassPanelClass} p-5`}>
+          <section className={`flex min-h-[320px] flex-1 flex-col rounded-xl ${zoomPanelClass} p-3 pb-20`}>
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.16em] text-white/40">Stage</p>
-                <p className="text-sm text-white/70">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Stage</p>
+                <p className="text-sm text-slate-300">
                   {sharedScreen?.active ? "Live shared presentation" : presentationSource ? "Current presentation" : "Add a presentation to begin"}
                 </p>
               </div>
@@ -520,7 +621,7 @@ export function HostMeetingRoom({
                     variant="outline"
                     onClick={goPrev}
                     disabled={!canNavigateSlides || activeSlideIndex <= 0}
-                    className={glassButtonClass}
+                    className={zoomButtonClass}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -532,7 +633,7 @@ export function HostMeetingRoom({
                     variant="outline"
                     onClick={goNext}
                     disabled={!canNavigateSlides || activeSlideIndex >= numSlides - 1}
-                    className={glassButtonClass}
+                    className={zoomButtonClass}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -540,7 +641,7 @@ export function HostMeetingRoom({
               )}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-hidden rounded-[1.75rem] border border-white/10 bg-black/30">
+            <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-700 bg-[#050507]">
               {sharedScreen?.active && sharedScreen.frame ? (
                 <div className="flex h-full items-center justify-center overflow-hidden p-4">
                   <img
@@ -548,6 +649,15 @@ export function HostMeetingRoom({
                     alt={sharedScreen.sourceLabel ?? "Shared local presentation"}
                     className="max-h-full max-w-full rounded-md object-contain shadow-lg"
                   />
+                </div>
+              ) : !presentationSource ? (
+                <div className="relative flex h-full min-h-[320px] items-center justify-center bg-[#1b1b1e]">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-semibold text-white shadow-lg">
+                    {presenterInitial}
+                  </div>
+                  <p className="absolute bottom-3 left-3 rounded bg-black/40 px-2 py-1 text-xs text-white/90">
+                    {meeting.title || "Presenter"}
+                  </p>
                 </div>
               ) : (
                 <SlideViewer presentationSource={presentationSource} pageIndex={activeSlideIndex} className="h-full min-h-[320px]" />
@@ -563,8 +673,8 @@ export function HostMeetingRoom({
                     onClick={() => updateState({ current_slide_index: index })}
                     className={`min-w-12 rounded-xl border px-3 py-2 text-sm transition ${
                       activeSlideIndex === index
-                        ? "border-white/40 bg-white/12 text-white"
-                        : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.08]"
+                        ? "border-slate-500 bg-slate-700 text-white"
+                        : "border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
                     }`}
                   >
                     {index + 1}
@@ -581,33 +691,88 @@ export function HostMeetingRoom({
             {screenShareError && <p className="mt-3 text-center text-xs text-red-300">{screenShareError}</p>}
           </section>
 
-          <div className="flex flex-wrap items-center gap-5 px-2 text-sm text-white/65">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={state.allow_client_navigation}
-                onChange={(e) => updateState({ allow_client_navigation: e.target.checked })}
-                className="rounded border-white/30"
-              />
-              Allow client to change slides
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={state.show_host_camera ?? true}
-                onChange={(e) => updateState({ show_host_camera: e.target.checked })}
-                className="rounded border-white/30"
-              />
-              Show presenter camera
-            </label>
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-800 bg-[#0f1116]/96 backdrop-blur">
+            <div className="h-16 overflow-x-auto px-2">
+              <div className="mx-auto flex h-16 min-w-max items-center gap-1">
+                <button type="button" onClick={() => { setAudioMuted((v) => !v); notifyBottom(audioMuted ? "Audio unmuted." : "Audio muted.") }} className="flex w-[64px] flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                  <Mic className="h-4 w-4" />
+                  <span>{audioMuted ? "Unmute" : "Mute"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateState({ show_host_camera: !(state.show_host_camera ?? true) })}
+                  className="flex w-[64px] flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80"
+                >
+                  <Video className="h-4 w-4" />
+                  <span>{(state.show_host_camera ?? true) ? "Video On" : "Video Off"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowSetup((v) => !v)}
+                  className="flex w-[72px] flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80"
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Participants</span>
+                </button>
+                <button type="button" onClick={() => { void handleChatAction() }} className="flex w-[64px] flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Chat</span>
+                </button>
+                <button type="button" onClick={() => notifyBottom("Reaction sent.")} className="flex w-[64px] flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                  <Smile className="h-4 w-4" />
+                  <span>React</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (sharedScreen?.active) {
+                      void stopLocalScreenShare()
+                    } else {
+                      void startLocalScreenShare()
+                    }
+                  }}
+                  className="flex w-[78px] flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80"
+                >
+                  <Share2 className="h-4 w-4" />
+                  <span>{sharedScreen?.active ? "Stop Share" : "Share"}</span>
+                </button>
+                <button type="button" onClick={() => setShowSetup((v) => !v)} className="flex w-[68px] flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                  <Wrench className="h-4 w-4" />
+                  <span>Host tools</span>
+                </button>
+                <button type="button" onClick={() => window.open(`/meet/${meetingId}`, "_blank")} className="flex w-[64px] flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span>More</span>
+                </button>
+
+                {meeting.status === "live" ? (
+                  <Button size="sm" variant="destructive" onClick={endMeeting} className="ml-2 h-9 bg-rose-600 hover:bg-rose-500">
+                    <Square className="mr-1 h-4 w-4" />
+                    End
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={startMeeting} className="ml-2 h-9 border border-emerald-500/50 bg-emerald-600 text-white hover:bg-emerald-500">
+                    <Play className="mr-1 h-4 w-4" />
+                    Start
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
+          {bottomNotice && (
+            <div className="pointer-events-none fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full border border-slate-600 bg-slate-900/95 px-4 py-1.5 text-xs text-slate-100 shadow-xl">
+              {bottomNotice}
+            </div>
+          )}
         </main>
 
-        <aside className={`flex w-[24rem] shrink-0 flex-col gap-4 rounded-[2rem] ${glassPanelClass} p-4`}>
+        {meeting.status === "draft" && showSetup && (
+        <aside className={`hidden w-[min(23rem,34vw)] min-w-[18rem] shrink-0 flex-col gap-4 overflow-auto rounded-xl ${zoomPanelClass} p-4 xl:flex`}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-white/40">Presentation settings</p>
-              <p className="mt-1 text-sm text-white/65">Upload the presentation, attach the host script, and control the presenter view.</p>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Presentation settings</p>
+              <p className="mt-1 text-sm text-slate-300">Upload the presentation, attach the host script, and control the presenter view.</p>
             </div>
             {meeting.status === "draft" && (
               <Button
@@ -615,7 +780,7 @@ export function HostMeetingRoom({
                 size="sm"
                 variant="outline"
                 onClick={toggleAllSetupPanels}
-                className={`${glassButtonClass} shrink-0`}
+                className={`${zoomButtonClass} shrink-0`}
               >
                 {allSetupPanelsOpen ? "Collapse all" : "Expand all"}
               </Button>
@@ -624,7 +789,7 @@ export function HostMeetingRoom({
 
           {meeting.status === "draft" && showSetup && (
             <div className="space-y-3">
-              <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-3">
+              <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-900/60 p-3">
                 <button
                   type="button"
                   onClick={() => setShowDeckPanel((value) => !value)}
@@ -654,7 +819,7 @@ export function HostMeetingRoom({
                       <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/55">No presentation yet</p>
                     )}
                     {onCreateDeck && (
-                      <Button type="button" size="sm" variant="outline" onClick={onCreateDeck} className={`w-full ${glassButtonClass}`}>
+                      <Button type="button" size="sm" variant="outline" onClick={onCreateDeck} className={`w-full ${zoomButtonClass}`}>
                         Create new presentation
                       </Button>
                     )}
@@ -662,7 +827,7 @@ export function HostMeetingRoom({
                 )}
               </div>
 
-              <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-3">
+              <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-900/60 p-3">
                 <button
                   type="button"
                   onClick={() => setShowPresentationPanel((value) => !value)}
@@ -678,7 +843,7 @@ export function HostMeetingRoom({
                       size="sm"
                       variant="outline"
                       disabled={uploading}
-                      className={`w-full ${glassButtonClass}`}
+                      className={`w-full ${zoomButtonClass}`}
                       onClick={() => deckUploadInputRef.current?.click()}
                     >
                       <Upload className="mr-1 h-4 w-4" />
@@ -716,7 +881,7 @@ export function HostMeetingRoom({
                 )}
               </div>
 
-              <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-3">
+              <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-900/60 p-3">
                 <button
                   type="button"
                   onClick={() => setShowScriptUploadPanel((value) => !value)}
@@ -728,12 +893,12 @@ export function HostMeetingRoom({
                 {showScriptUploadPanel && (
                   <div className="space-y-3 pt-1">
                     <div className="flex gap-2">
-                      <Button type="button" size="sm" variant="outline" className={`flex-1 ${glassButtonClass}`} onClick={() => scriptUploadInputRef.current?.click()}>
+                      <Button type="button" size="sm" variant="outline" className={`flex-1 ${zoomButtonClass}`} onClick={() => scriptUploadInputRef.current?.click()}>
                         <FileText className="mr-1 h-4 w-4" />
                         Upload script
                       </Button>
                       {meetingScript.trim() && (
-                        <Button type="button" size="sm" variant="outline" className={glassButtonClass} onClick={() => setMeetingScript("")}>
+                        <Button type="button" size="sm" variant="outline" className={zoomButtonClass} onClick={() => setMeetingScript("")}>
                           Clear
                         </Button>
                       )}
@@ -762,7 +927,7 @@ export function HostMeetingRoom({
               </div>
 
               {onSaveLink && (
-                <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-900/60 p-3">
                   <button
                     type="button"
                     onClick={() => setShowLinkPanel((value) => !value)}
@@ -791,7 +956,7 @@ export function HostMeetingRoom({
                         type="button"
                         size="sm"
                         disabled={savingLink || !linkInput.trim()}
-                        className={`w-full ${glassButtonClass}`}
+                        className={`w-full ${zoomButtonClass}`}
                         onClick={async () => {
                           if (!onSaveLink || !linkInput.trim()) return
                           setUploadError(null)
@@ -821,10 +986,10 @@ export function HostMeetingRoom({
             </div>
           )}
 
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+          <div className="space-y-3 rounded-xl border border-slate-700 bg-slate-900/60 p-3">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-white/40">Presenter tools</p>
-              <p className="mt-1 text-sm text-white/65">Private notes and camera preview.</p>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Presenter tools</p>
+              <p className="mt-1 text-sm text-slate-300">Private notes and camera preview.</p>
             </div>
             <CameraPreview className="h-40 rounded-2xl" onFrame={publishCameraFrame} />
           </div>
@@ -836,10 +1001,11 @@ export function HostMeetingRoom({
             onFontSizeChange={(delta) => setScriptFontSize((size) => Math.max(12, Math.min(24, size + delta)))}
             className="min-h-0 flex-1"
           />
-          <Button size="sm" variant="outline" onClick={() => setScriptDark((value) => !value)} className={glassButtonClass}>
+          <Button size="sm" variant="outline" onClick={() => setScriptDark((value) => !value)} className={zoomButtonClass}>
             {scriptDark ? "Light script" : "Dark script"}
           </Button>
         </aside>
+        )}
       </div>
     </div>
   )

@@ -32,7 +32,6 @@ export default function CalendarsPage() {
   const { isCollapsed, toggleSidebar } = useSidebar()
   // Calendar events - empty by default, user will add their own
   const events: any[] = []
-  const [isLoaded, setIsLoaded] = useState(false)
   const [showCreateEventModal, setShowCreateEventModal] = useState(false)
   const [newEvent, setNewEvent] = useState({
     id: 0,
@@ -71,10 +70,6 @@ export default function CalendarsPage() {
     { name: "Orange", value: "bg-orange-500" },
     { name: "Red", value: "bg-red-500" },
   ]
-
-  useEffect(() => {
-    setIsLoaded(true)
-  }, [])
 
   // Load clients when create-event modal is open (for reminder recipient dropdown)
   useEffect(() => {
@@ -695,9 +690,7 @@ export default function CalendarsPage() {
 
       {/* Navigation (sits inside main content, respects sidebar padding) */}
       <header
-        className={`flex items-center justify-between pl-4 pr-8 py-4 opacity-0 ${
-          isLoaded ? "animate-fade-in" : ""
-        }`}
+        className="flex items-center justify-between pl-4 pr-8 py-4 animate-fade-in"
         style={{ animationDelay: "0.2s" }}
       >
         {/* Left: sidebar toggle (when collapsed) + Calendar title */}
@@ -730,10 +723,10 @@ export default function CalendarsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="relative h-screen w-full pt-2 flex">
+      <main className="calendar-immersive relative h-screen w-full pt-2 flex">
         {/* Sidebar */}
         <div
-          className={`w-64 h-full bg-black/90 backdrop-blur-xl p-4 shadow-xl border-r border-white/20 rounded-tr-3xl opacity-0 ${isLoaded ? "animate-fade-in" : ""} flex flex-col`}
+          className="w-64 h-full bg-black/90 backdrop-blur-xl p-4 shadow-xl border-r border-white/20 rounded-tr-3xl animate-fade-in flex flex-col"
           style={{ animationDelay: "0.4s" }}
         >
           {/* Scrollable content area */}
@@ -893,7 +886,7 @@ export default function CalendarsPage() {
 
         {/* Calendar View */}
         <div
-          className={`flex-1 flex flex-col rounded-xl overflow-hidden bg-black/70 opacity-0 ${isLoaded ? "animate-fade-in" : ""}`}
+          className="flex-1 flex flex-col rounded-xl overflow-hidden bg-black/70 animate-fade-in"
           style={{ animationDelay: "0.6s" }}
         >
           {/* Calendar Controls */}

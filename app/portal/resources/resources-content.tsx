@@ -112,7 +112,7 @@ export function ResourcesContent({
 
   return (
     <PortalLayout>
-      <div className="space-y-8">
+      <div className="portal-resources space-y-8">
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
           {isCollapsed && (
             <Button type="button" variant="ghost" size="icon" onClick={toggleSidebar} className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors lg:inline-flex" aria-label="Expand sidebar">

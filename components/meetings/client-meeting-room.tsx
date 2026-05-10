@@ -35,6 +35,7 @@ export function ClientMeetingRoom({
   const canNavigateSlides = presentationSource?.canNavigate ?? true
   const numSlides = canNavigateSlides ? initialSlides.length : Math.max(initialSlides.length, 1)
   const activeSlideIndex = canNavigateSlides ? Math.min(state.current_slide_index, Math.max(numSlides - 1, 0)) : 0
+  const presenterInitial = (initialMeeting.title?.trim()?.[0] ?? "P").toUpperCase()
 
   const poll = useCallback(async () => {
     try {
@@ -137,7 +138,7 @@ export function ClientMeetingRoom({
       </header>
 
       <main className="flex min-h-0 flex-1 flex-col p-4">
-        <div className="relative flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/30 shadow-[0_18px_50px_rgba(0,0,0,0.28)] min-h-[400px]">
+        <div className="relative flex-1 overflow-hidden rounded-2xl border border-white/10 bg-[#111318] shadow-[0_18px_50px_rgba(0,0,0,0.28)] min-h-[400px]">
           {sharedScreen?.active && sharedScreen.frame ? (
             <div className="flex h-full min-h-[400px] items-center justify-center overflow-hidden bg-black/30">
               <img
@@ -145,6 +146,15 @@ export function ClientMeetingRoom({
                 alt={sharedScreen.sourceLabel ?? "Shared presentation"}
                 className="max-h-full max-w-full object-contain"
               />
+            </div>
+          ) : !presentationSource ? (
+            <div className="relative flex h-full min-h-[400px] items-center justify-center bg-[#1f2125]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-semibold text-white shadow-lg">
+                {presenterInitial}
+              </div>
+              <p className="absolute bottom-3 left-3 rounded bg-black/40 px-2 py-1 text-xs text-white/90">
+                {initialMeeting.title || "Presenter"}
+              </p>
             </div>
           ) : (
             <SlideViewer

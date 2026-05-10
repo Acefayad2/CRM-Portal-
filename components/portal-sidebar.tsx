@@ -28,6 +28,7 @@ import {
   PanelLeft,
   ShieldCheck,
   Video,
+  ChartNoAxesColumn,
 } from "lucide-react"
 import { useSidebar } from "@/contexts/sidebar-context"
 import { getUserInitials } from "@/lib/avatar-initials"
@@ -40,6 +41,7 @@ const baseNavigation = [
   { name: "Team", href: "/portal/team", icon: UsersRound },
   { name: "Scripts", href: "/portal/scripts", icon: FileText },
   { name: "Resources", href: "/portal/resources", icon: BookOpen },
+  { name: "Trackers", href: "/portal/trackers", icon: ChartNoAxesColumn },
   { name: "Test SMS", href: "/test-sms", icon: MessageSquare },
   { name: "Billing", href: "/portal/settings/billing", icon: CreditCard },
   { name: "Settings", href: "/portal/settings", icon: Settings },
@@ -88,8 +90,8 @@ export function PortalSidebar() {
           "flex items-center rounded-lg text-sm font-medium transition-colors",
           isCollapsed ? "justify-center p-3" : "space-x-3 px-3 py-2",
           isActive
-            ? "bg-white/10 text-white"
-            : "text-sidebar-foreground hover:bg-white/5 hover:text-white",
+            ? "bg-slate-200 text-slate-900"
+            : "text-sidebar-foreground hover:bg-slate-100 hover:text-slate-900",
         )}
       >
         <item.icon className="h-5 w-5 shrink-0" />
@@ -100,7 +102,7 @@ export function PortalSidebar() {
       return (
         <Tooltip>
           <TooltipTrigger asChild>{link}</TooltipTrigger>
-          <TooltipContent side="right" className="border-white/20 bg-black/80">
+          <TooltipContent side="right" className="border-slate-300 bg-white text-slate-900">
             {item.name}
           </TooltipContent>
         </Tooltip>
@@ -117,7 +119,7 @@ export function PortalSidebar() {
           variant="outline"
           size="icon"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="h-11 w-11 shrink-0 rounded-xl border-white/20 bg-slate-950/90 text-white backdrop-blur-md hover:bg-slate-900"
+          className="h-11 w-11 shrink-0 rounded-xl border-slate-300 bg-white/90 text-slate-800 backdrop-blur-md hover:bg-slate-100"
           aria-expanded={isMobileMenuOpen}
           aria-controls="portal-mobile-nav"
         >
@@ -162,12 +164,12 @@ export function PortalSidebar() {
                       variant="ghost"
                       size="icon"
                       onClick={toggleSidebar}
-                      className="h-8 w-8 text-sidebar-foreground hover:text-white hover:bg-white/5"
+                      className="h-8 w-8 text-sidebar-foreground hover:bg-slate-100 hover:text-slate-900"
                     >
                       <Menu className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="border-white/20 bg-black/80">
+                  <TooltipContent side="right" className="border-slate-300 bg-white text-slate-900">
                     Collapse sidebar
                   </TooltipContent>
                 </Tooltip>
@@ -218,12 +220,12 @@ export function PortalSidebar() {
                     variant="ghost"
                     size="icon"
                     onClick={toggleSidebar}
-                    className="w-full h-10 text-sidebar-foreground hover:text-white hover:bg-white/5"
+                    className="w-full h-10 text-sidebar-foreground hover:bg-slate-100 hover:text-slate-900"
                   >
                     <PanelLeft className="h-5 w-5" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="border-white/20 bg-black/80">
+                <TooltipContent side="right" className="border-slate-300 bg-white text-slate-900">
                   Expand sidebar
                 </TooltipContent>
               </Tooltip>

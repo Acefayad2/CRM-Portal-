@@ -38,7 +38,7 @@ export function PortalDashboardWithSubscription() {
                     variant="ghost"
                     size="icon"
                     onClick={toggleSidebar}
-                    className="hidden lg:inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                    className="hidden lg:inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-900 hover:bg-slate-300 transition-colors"
                     aria-label="Expand sidebar"
                   >
                     <Menu className="h-5 w-5" />
@@ -50,7 +50,7 @@ export function PortalDashboardWithSubscription() {
                 asChild
                 variant="outline"
                 size="sm"
-                className="shrink-0 gap-2 border-white/15 bg-white/5 text-foreground hover:bg-white/10"
+                className="shrink-0 gap-2 border-slate-300 bg-white/90 text-foreground hover:bg-slate-100"
               >
                 <Link href="/" aria-label="Go to homepage">
                   <Home className="h-4 w-4" />
