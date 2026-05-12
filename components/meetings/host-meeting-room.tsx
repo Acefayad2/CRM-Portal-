@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { SlideViewer } from "./slide-viewer"
 import { ScriptPanel } from "./script-panel"
 import { CameraPreview } from "./camera-preview"
-import { ChevronDown, ChevronLeft, ChevronRight, Copy, Radio, Square, Play, Settings2, Upload, FileText, MonitorUp, MonitorOff, RefreshCw, Mic, Video, Users, MessageCircle, Smile, Share2, Wrench, MoreHorizontal } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight, Copy, Radio, Square, Play, Settings2, Upload, FileText, MonitorUp, MonitorOff, RefreshCw, Mic, MicOff, Video, VideoOff, Users, MessageCircle, Smile, Share2, Wrench, MoreHorizontal } from "lucide-react"
 import type { PresentationSource } from "@/lib/presentation-source"
 import { getRenderableSlideNotes } from "@/lib/presentation-source"
 import { broadcastMeetingScreenShare, createMeetingLiveChannel, type MeetingLiveSharePayload } from "@/lib/meeting-live-channel"
@@ -90,12 +90,33 @@ export function HostMeetingRoom({
   const canNavigateSlides = presentationSource?.canNavigate ?? true
   const numSlides = canNavigateSlides ? slides.length : Math.max(slides.length, 1)
   const activeSlideIndex = canNavigateSlides ? Math.min(state.current_slide_index, Math.max(numSlides - 1, 0)) : 0
-  const presenterInitial = (meeting.title?.trim()?.[0] ?? "P").toUpperCase()
-  const presenterDisplayName = "You"
-  const zoomIdleMode = true
+  const [presenterDisplayName, setPresenterDisplayName] = useState("You")
+  const [presenterInitial, setPresenterInitial] = useState("Y")
+  const zoomIdleMode = !presentationSource && !sharedScreen?.active
   const currentNotes = getRenderableSlideNotes(
     slides.find((s) => s.slide_index === activeSlideIndex)?.speaker_notes ?? null
   )
+
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return
+        const first = typeof data?.firstName === "string" ? data.firstName.trim() : ""
+        const last = typeof data?.lastName === "string" ? data.lastName.trim() : ""
+        const email = typeof data?.email === "string" ? data.email.trim() : ""
+        const name = [first, last].filter(Boolean).join(" ") || email || "You"
+        setPresenterDisplayName(name)
+        const initial =
+          (first || last || email || "Y").trim().charAt(0).toUpperCase() || "Y"
+        setPresenterInitial(initial)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -432,21 +453,33 @@ export function HostMeetingRoom({
       <div className="flex h-full flex-col bg-[#0b0b0c]">
         <div className="h-10 border-b border-slate-800 bg-[#121214]" />
         <div className="relative flex flex-1 items-center justify-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-semibold text-white shadow-lg">
-            {presenterInitial}
-          </div>
+          {(state.show_host_camera ?? true) ? (
+            <div className="h-full w-full p-4">
+              <div className="h-full w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#050507]">
+                <CameraPreview className="h-full w-full" onFrame={publishCameraFrame} />
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-semibold text-white shadow-lg">
+              {presenterInitial}
+            </div>
+          )}
           <div className="absolute bottom-2 left-3 text-xs text-white/85">{presenterDisplayName}</div>
         </div>
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-800 bg-[#0f1116]/96 backdrop-blur">
           <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
             <div className="flex items-center gap-1">
               <button type="button" onClick={() => { setAudioMuted((v) => !v); notifyBottom(audioMuted ? "Audio unmuted." : "Audio muted.") }} className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
-                <Mic className="h-4 w-4" />
+                {audioMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 <span>{audioMuted ? "Unmute" : "Mute"}</span>
               </button>
-              <button type="button" className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
-                <Video className="h-4 w-4" />
-                <span>Video</span>
+              <button
+                type="button"
+                onClick={() => updateState({ show_host_camera: !(state.show_host_camera ?? true) })}
+                className="flex min-w-[68px] flex-col items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80"
+              >
+                {(state.show_host_camera ?? true) ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                <span>{(state.show_host_camera ?? true) ? "Video On" : "Video Off"}</span>
               </button>
             </div>
 
@@ -652,11 +685,19 @@ export function HostMeetingRoom({
                 </div>
               ) : !presentationSource ? (
                 <div className="relative flex h-full min-h-[320px] items-center justify-center bg-[#1b1b1e]">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-semibold text-white shadow-lg">
-                    {presenterInitial}
-                  </div>
+                  {(state.show_host_camera ?? true) ? (
+                    <div className="h-full w-full p-4">
+                      <div className="h-full w-full overflow-hidden rounded-xl border border-slate-700 bg-[#050507]">
+                        <CameraPreview className="h-full w-full" onFrame={publishCameraFrame} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-semibold text-white shadow-lg">
+                      {presenterInitial}
+                    </div>
+                  )}
                   <p className="absolute bottom-3 left-3 rounded bg-black/40 px-2 py-1 text-xs text-white/90">
-                    {meeting.title || "Presenter"}
+                    {presenterDisplayName}
                   </p>
                 </div>
               ) : (
@@ -695,7 +736,7 @@ export function HostMeetingRoom({
             <div className="h-16 overflow-x-auto px-2">
               <div className="mx-auto flex h-16 min-w-max items-center gap-1">
                 <button type="button" onClick={() => { setAudioMuted((v) => !v); notifyBottom(audioMuted ? "Audio unmuted." : "Audio muted.") }} className="flex w-[64px] flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80">
-                  <Mic className="h-4 w-4" />
+                  {audioMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   <span>{audioMuted ? "Unmute" : "Mute"}</span>
                 </button>
                 <button
@@ -703,7 +744,7 @@ export function HostMeetingRoom({
                   onClick={() => updateState({ show_host_camera: !(state.show_host_camera ?? true) })}
                   className="flex w-[64px] flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-[10px] text-slate-200 hover:bg-slate-800/80"
                 >
-                  <Video className="h-4 w-4" />
+                  {(state.show_host_camera ?? true) ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
                   <span>{(state.show_host_camera ?? true) ? "Video On" : "Video Off"}</span>
                 </button>
 

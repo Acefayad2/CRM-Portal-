@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { statusOptions, type Client, type ClientStatus } from "@/lib/crm-data"
+import { SmsClientRecordAttestation, SmsCtaMicrocopy } from "@/components/compliance/sms-consent"
 
 interface AddClientDialogProps {
   open: boolean
@@ -36,19 +37,29 @@ export function AddClientDialog({
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
+  const [smsConsent, setSmsConsent] = useState(false)
   const [status, setStatus] = useState<ClientStatus>("New Lead")
+  const [formError, setFormError] = useState("")
 
   const resetForm = () => {
     setFirstName("")
     setLastName("")
     setEmail("")
     setPhone("")
+    setSmsConsent(false)
     setStatus("New Lead")
+    setFormError("")
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError("")
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !phone.trim()) {
+      return
+    }
+
+    if (!smsConsent) {
+      setFormError("Please confirm consent to store this phone number for client communications.")
       return
     }
 
@@ -126,6 +137,11 @@ export function AddClientDialog({
               placeholder="+1 (555) 123-4567"
               required
             />
+            <SmsClientRecordAttestation
+              id="add-client-sms-attest"
+              checked={smsConsent}
+              onCheckedChange={setSmsConsent}
+            />
           </div>
           <div className="space-y-2">
             <Label>Status</Label>
@@ -142,7 +158,9 @@ export function AddClientDialog({
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter>
+          {formError && <p className="text-sm text-destructive">{formError}</p>}
+          <SmsCtaMicrocopy className="text-left" />
+          <DialogFooter className="flex-col gap-3 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

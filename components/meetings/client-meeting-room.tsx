@@ -149,11 +149,19 @@ export function ClientMeetingRoom({
             </div>
           ) : !presentationSource ? (
             <div className="relative flex h-full min-h-[400px] items-center justify-center bg-[#1f2125]">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-semibold text-white shadow-lg">
-                {presenterInitial}
-              </div>
+              {(state.show_host_camera ?? true) && state.host_camera_frame ? (
+                <img
+                  src={state.host_camera_frame}
+                  alt="Presenter camera"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-semibold text-white shadow-lg">
+                  {presenterInitial}
+                </div>
+              )}
               <p className="absolute bottom-3 left-3 rounded bg-black/40 px-2 py-1 text-xs text-white/90">
-                {initialMeeting.title || "Presenter"}
+                Presenter
               </p>
             </div>
           ) : (

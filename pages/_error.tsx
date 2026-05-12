@@ -17,7 +17,7 @@ export default function ErrorPage({ statusCode }: ErrorPageProps) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-slate-50">
       <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-400">Pantheon</p>
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-400">Pantheon Portal</p>
         <h1 className="mt-4 text-3xl font-semibold">
           {statusCode === 404 ? "Page not found" : "Internal Server Error"}
         </h1>

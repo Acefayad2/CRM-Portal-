@@ -10,6 +10,7 @@ import { getWorkspaceForUser } from "@/lib/workspace"
 import { canSendSms, recordSmsSent } from "@/lib/workspace"
 import { validatePhone } from "@/lib/sms-utils"
 import { sendTelnyxSms } from "@/lib/telnyx"
+import { resolvePublicBaseUrl } from "@/lib/site-url"
 
 const INVITE_EXPIRES_DAYS = 7
 
@@ -61,11 +62,7 @@ export async function POST(request: Request) {
       .eq("id", membership.workspace_id)
       .single()
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      (request.headers.get("host")
-        ? `${request.headers.get("x-forwarded-proto") || "https"}://${request.headers.get("host")}`
-        : "http://localhost:3000")
+    const baseUrl = resolvePublicBaseUrl(request)
     const joinUrl = `${baseUrl.replace(/\/$/, "")}/join-invite?token=${encodeURIComponent(token)}`
 
     const { error: insertError } = await supabase.from("workspace_invites").insert({

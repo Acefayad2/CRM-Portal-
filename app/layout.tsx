@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
+import { BUSINESS_POSITIONING, COMPANY_DISPLAY_NAME } from "@/lib/site"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
@@ -8,34 +9,32 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pantheonportal.com"),
   title: {
-    default: "Pantheon CRM Portal | Sales Team Workspace",
-    template: "%s | Pantheon CRM Portal",
+    default: `${COMPANY_DISPLAY_NAME} | CRM & compliant client messaging`,
+    template: `%s | ${COMPANY_DISPLAY_NAME}`,
   },
-  description:
-    "Protect today. Grow tomorrow. Pantheon CRM Portal helps sales teams manage pipeline, meetings, calendars, scripts, and team execution in one secure workspace.",
+  description: BUSINESS_POSITIONING,
   keywords: [
+    "Pantheon Portal",
     "sales CRM",
-    "sales team portal",
+    "10DLC",
+    "SMS compliance",
+    "appointment reminders",
+    "client communication",
     "pipeline management",
-    "meeting workflow",
-    "sales scripts",
     "team collaboration",
-    "Pantheon CRM",
   ],
   openGraph: {
-    title: "Pantheon CRM Portal | Sales Team Workspace",
-    description:
-      "Manage pipeline, meetings, calendars, scripts, and team execution in one secure workspace.",
+    title: `${COMPANY_DISPLAY_NAME} | CRM & client messaging`,
+    description: BUSINESS_POSITIONING,
     url: "/",
-    siteName: "Pantheon CRM Portal",
+    siteName: COMPANY_DISPLAY_NAME,
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pantheon CRM Portal | Sales Team Workspace",
-    description:
-      "Manage pipeline, meetings, calendars, scripts, and team execution in one secure workspace.",
+    title: `${COMPANY_DISPLAY_NAME} | CRM & client messaging`,
+    description: BUSINESS_POSITIONING,
   },
   robots: {
     index: true,
@@ -52,7 +51,6 @@ export const metadata: Metadata = {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
     apple: "/apple-touch-icon.png",
   },
-  generator: "v0.app",
 }
 
 export const viewport: Viewport = {

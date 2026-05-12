@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { ShieldCheck, UserPlus, Users, Check, X, Menu, Copy } from "lucide-react"
 import { useSidebar } from "@/contexts/sidebar-context"
 import { toast } from "@/hooks/use-toast"
+import { SmsCtaMicrocopy, SmsOutboundInviteAttestation } from "@/components/compliance/sms-consent"
 
 interface JoinRequest {
   id: string
@@ -29,6 +30,7 @@ export default function AdminPage() {
   const [inviteSending, setInviteSending] = useState(false)
   const [inviteError, setInviteError] = useState("")
   const [lastJoinUrl, setLastJoinUrl] = useState<string | null>(null)
+  const [smsInviteAttest, setSmsInviteAttest] = useState(false)
 
   const loadAdminData = () => {
     fetch("/api/workspaces/members")
@@ -63,6 +65,10 @@ export default function AdminPage() {
       setInviteError("Enter at least a phone number or email.")
       return
     }
+    if (phone && !smsInviteAttest) {
+      setInviteError("Please confirm recipient consent before sending an SMS invite.")
+      return
+    }
     setInviteError("")
     setInviteSending(true)
     setLastJoinUrl(null)
@@ -90,6 +96,7 @@ export default function AdminPage() {
       setAddName("")
       setAddPhone("")
       setAddEmail("")
+      setSmsInviteAttest(false)
     } catch {
       setInviteError("Something went wrong")
     } finally {
@@ -203,6 +210,16 @@ export default function AdminPage() {
                     className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                   />
                   <p className="text-xs text-white/60">Include country code. They’ll get an SMS with a join link.</p>
+                  {addPhone.trim() ? (
+                    <>
+                      <SmsOutboundInviteAttestation
+                        id="admin-invite-sms-attest"
+                        checked={smsInviteAttest}
+                        onCheckedChange={setSmsInviteAttest}
+                      />
+                      <SmsCtaMicrocopy variant="dark" className="!text-left" />
+                    </>
+                  ) : null}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="add-email" className="text-white/90">Email</Label>
@@ -219,7 +236,11 @@ export default function AdminPage() {
                 {inviteError && <p className="text-sm text-red-400">{inviteError}</p>}
                 <Button
                   type="submit"
-                  disabled={inviteSending || (!addPhone.trim() && !addEmail.trim())}
+                  disabled={
+                    inviteSending ||
+                    (!addPhone.trim() && !addEmail.trim()) ||
+                    (!!addPhone.trim() && !smsInviteAttest)
+                  }
                   className="bg-blue-500 hover:bg-blue-600"
                 >
                   {inviteSending ? "Sending…" : "Send invite"}

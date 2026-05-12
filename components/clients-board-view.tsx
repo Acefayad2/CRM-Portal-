@@ -30,7 +30,8 @@ export function ClientsBoardView({ onClientSelect, onSendClient }: ClientsBoardV
     logContact(client.id, clientName, action)
     if (action === "call") window.open(`tel:${client.phone}`)
     else if (action === "text") window.open(`sms:${client.phone}`)
-    else if (action === "email") window.open(`mailto:${client.email}?subject=Pantheon%20Follow-up`)
+    else if (action === "email")
+      window.open(`mailto:${client.email}?subject=${encodeURIComponent("Pantheon Portal follow-up")}`)
   }
 
   const handleStatusChange = (clientId: string, newStatus: ClientStatus) => {

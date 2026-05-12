@@ -1,6 +1,6 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
-import { SiteLegalFooter } from "@/components/site-legal-footer"
+import { SiteFooter } from "@/components/site-footer"
 
 type Props = {
   children: ReactNode
@@ -23,12 +23,7 @@ export function LegalDocumentShell({ children }: Props) {
 
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">{children}</div>
 
-      <div className="mx-auto max-w-3xl border-t border-zinc-200 px-4 py-8 dark:border-zinc-800 sm:px-6">
-        <SiteLegalFooter variant="legal" />
-        <p className="mt-6 text-center text-xs text-zinc-500 dark:text-zinc-500">
-          © {new Date().getFullYear()} Pantheon. All rights reserved.
-        </p>
-      </div>
+      <SiteFooter variant="legal" />
     </div>
   )
 }

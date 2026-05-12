@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label"
 import { UsersRound, Send, Menu, UserPlus, MessageSquare, Check, X } from "lucide-react"
 import { useSidebar } from "@/contexts/sidebar-context"
 import { toast } from "@/hooks/use-toast"
+import { SmsCtaMicrocopy, SmsOutboundInviteAttestation } from "@/components/compliance/sms-consent"
 
 interface Teammate {
   id: string
@@ -56,6 +57,7 @@ export default function TeamPage() {
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([])
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [invitePhone, setInvitePhone] = useState("")
+  const [inviteSmsAttest, setInviteSmsAttest] = useState(false)
   const [inviteSending, setInviteSending] = useState(false)
   const [inviteError, setInviteError] = useState("")
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -159,6 +161,10 @@ export default function TeamPage() {
   const handleSendInvite = async () => {
     const phone = invitePhone.trim()
     if (!phone) return
+    if (!inviteSmsAttest) {
+      setInviteError("Please confirm recipient consent before sending an SMS invite.")
+      return
+    }
     setInviteError("")
     setInviteSending(true)
     try {
@@ -175,6 +181,7 @@ export default function TeamPage() {
       toast({ title: "Invite sent", description: "They'll receive a text with a link to join the team." })
       setInviteDialogOpen(false)
       setInvitePhone("")
+      setInviteSmsAttest(false)
     } catch {
       setInviteError("Something went wrong")
     } finally {
@@ -440,7 +447,14 @@ export default function TeamPage() {
         </Sheet>
 
         {/* Invite by SMS dialog */}
-        <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <Dialog open={inviteDialogOpen} onOpenChange={(o) => {
+          setInviteDialogOpen(o)
+          if (!o) {
+            setInvitePhone("")
+            setInviteSmsAttest(false)
+            setInviteError("")
+          }
+        }}>
           <DialogContent className="sm:max-w-md border-white/20 bg-black/95">
             <DialogHeader>
               <DialogTitle className="text-white flex items-center gap-2">
@@ -464,6 +478,12 @@ export default function TeamPage() {
                 />
                 <p className="text-xs text-white/60">Include country code (e.g. +1 for US)</p>
               </div>
+              <SmsOutboundInviteAttestation
+                id="team-invite-sms-attest"
+                checked={inviteSmsAttest}
+                onCheckedChange={setInviteSmsAttest}
+              />
+              <SmsCtaMicrocopy variant="dark" className="!text-left" />
               {inviteError && (
                 <p className="text-sm text-red-400">{inviteError}</p>
               )}
@@ -474,7 +494,7 @@ export default function TeamPage() {
               </Button>
               <Button
                 onClick={handleSendInvite}
-                disabled={!invitePhone.trim() || inviteSending}
+                disabled={!invitePhone.trim() || !inviteSmsAttest || inviteSending}
                 className="bg-blue-500 hover:bg-blue-600"
               >
                 {inviteSending ? "Sending..." : "Send invite"}

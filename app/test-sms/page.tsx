@@ -11,11 +11,13 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { SmsCtaMicrocopy, SmsOutboundInviteAttestation } from "@/components/compliance/sms-consent"
 
 const DEFAULT_TO = "+18777804236"
 
 export default function TestSMSPage() {
   const [phone, setPhone] = useState(DEFAULT_TO)
+  const [devAttest, setDevAttest] = useState(false)
   const [fromNumber, setFromNumber] = useState<string | null>(null)
 
   useEffect(() => {
@@ -30,6 +32,10 @@ export default function TestSMSPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!devAttest) {
+      setResult({ success: false, error: "Confirm authorization before sending test SMS." })
+      return
+    }
     setLoading(true)
     setResult(null)
     try {
@@ -83,6 +89,8 @@ export default function TestSMSPage() {
                   className="font-mono"
                 />
               </div>
+              <SmsOutboundInviteAttestation id="test-sms-attest" checked={devAttest} onCheckedChange={setDevAttest} variant="light" />
+              <SmsCtaMicrocopy className="!text-left" />
               <div className="space-y-2">
                 <Label htmlFor="message">Message</Label>
                 <Textarea
@@ -97,7 +105,7 @@ export default function TestSMSPage() {
                   {message.length} / 1200 characters
                 </p>
               </div>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !devAttest}>
                 {loading ? "Sending..." : "Send SMS"}
               </Button>
             </form>
@@ -137,7 +145,7 @@ export default function TestSMSPage() {
             <p>3. <code>ngrok http 3000</code></p>
             <p>4. In Telnyx Portal → Messaging → Messaging Profiles:</p>
             <ul className="ml-4 list-disc">
-              <li>Webhook URL → https://&lt;ngrok&gt;/api/telnyx/webhook</li>
+              <li>Webhook URL → https://YOUR_PUBLIC_HOST/api/telnyx/webhook (e.g. tunnel during development)</li>
             </ul>
             <p>5. Required env vars: <code>TELNYX_API_KEY</code>, <code>TELNYX_PHONE_NUMBER</code>, <code>TELNYX_WEBHOOK_URL</code></p>
           </CardContent>

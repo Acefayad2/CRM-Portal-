@@ -59,7 +59,7 @@ export function ClientsListView({ onClientSelect, onSendClient }: ClientsListVie
     } else if (action === "text") {
       window.open(`sms:${client.phone}`)
     } else if (action === "email") {
-      window.open(`mailto:${client.email}?subject=Pantheon%20Follow-up`)
+      window.open(`mailto:${client.email}?subject=${encodeURIComponent("Pantheon Portal follow-up")}`)
     }
   }
 

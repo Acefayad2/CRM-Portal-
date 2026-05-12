@@ -12,6 +12,7 @@ import { validatePhone } from "@/lib/sms-utils"
 import { getEmailTemplate, renderTemplate } from "@/lib/email-templates"
 import { sendEmail } from "@/lib/email"
 import { sendTelnyxSms } from "@/lib/telnyx"
+import { resolvePublicBaseUrl } from "@/lib/site-url"
 
 const INVITE_EXPIRES_DAYS = 7
 
@@ -52,11 +53,7 @@ export async function POST(request: Request) {
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + INVITE_EXPIRES_DAYS)
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      (request.headers.get("host")
-        ? `${request.headers.get("x-forwarded-proto") || "https"}://${request.headers.get("host")}`
-        : "http://localhost:3000")
+    const baseUrl = resolvePublicBaseUrl(request)
     const joinUrl = `${baseUrl.replace(/\/$/, "")}/join-invite?token=${encodeURIComponent(token)}`
 
     const { data: workspace } = await supabase

@@ -147,11 +147,11 @@ export function PortalSidebar() {
             )}
           >
             {!isCollapsed ? (
-              <Link href="/portal" className="flex items-center space-x-2">
-                <span className="text-2xl font-bold text-sidebar-primary">Pantheon</span>
+              <Link href="/portal" className="flex flex-col leading-tight">
+                <span className="text-lg font-bold tracking-tight text-sidebar-primary">Pantheon Portal</span>
               </Link>
             ) : (
-              <Link href="/portal" className="flex justify-center">
+              <Link href="/portal" className="flex justify-center" title="Pantheon Portal">
                 <span className="text-xl font-bold text-sidebar-primary">P</span>
               </Link>
             )}

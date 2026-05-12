@@ -10,6 +10,12 @@ import { PhoneInputWithCountry } from "@/components/phone-input-with-country"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  SmsConsentCheckboxRow,
+  SmsCtaMicrocopy,
+  SmsOptInParagraph,
+} from "@/components/compliance/sms-consent"
+import { COMPANY_DISPLAY_NAME } from "@/lib/site"
 
 export default function CompleteProfilePage() {
   const router = useRouter()
@@ -19,6 +25,7 @@ export default function CompleteProfilePage() {
   } | null>(null)
   const [phone, setPhone] = useState("")
   const [birthday, setBirthday] = useState("")
+  const [smsConsent, setSmsConsent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [checking, setChecking] = useState(true)
@@ -64,6 +71,10 @@ export default function CompleteProfilePage() {
       setError("Please enter a valid phone number")
       return
     }
+    if (!smsConsent) {
+      setError("Please confirm SMS consent to continue.")
+      return
+    }
     setLoading(true)
     try {
       const res = await fetch("/api/auth/complete-profile", {
@@ -104,7 +115,7 @@ export default function CompleteProfilePage() {
         <div className="rounded-xl border border-white/20 bg-white/10 p-8 shadow-2xl backdrop-blur-md">
           <div className="mb-8 text-center">
             <Link href="/" className="text-2xl font-bold text-white">
-              Pantheon
+              {COMPANY_DISPLAY_NAME}
             </Link>
             <p className="mt-2 text-sm text-white/80">
               Protect Today. Grow Tomorrow.
@@ -154,6 +165,14 @@ export default function CompleteProfilePage() {
                 placeholder="555 123 4567"
                 required
               />
+              <SmsOptInParagraph variant="auth" className="mt-3" />
+              <SmsConsentCheckboxRow
+                id="complete-profile-sms-consent"
+                checked={smsConsent}
+                onCheckedChange={setSmsConsent}
+                variant="auth"
+                className="mt-3"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="birthday" className="text-white/90">
@@ -166,6 +185,7 @@ export default function CompleteProfilePage() {
               />
             </div>
             {error && <p className="text-sm text-red-400">{error}</p>}
+            <SmsCtaMicrocopy variant="dark" className="w-full !text-left" />
             <Button
               type="submit"
               disabled={loading}
