@@ -5,7 +5,7 @@ export const COMPANY_DISPLAY_NAME = "Pantheon Portal" as const
 
 /** Exact positioning statement for carrier / brand verification (use verbatim on marketing). */
 export const BUSINESS_POSITIONING =
-  "Pantheon Portal is a CRM and client communication platform for financial professionals and agencies." as const
+  "Pantheon Portal is a CRM and client communication platform for teams and agencies." as const
 
 /** Shown in footers and legal copy. Adjust if your registered legal name differs. */
 export const COMPANY_LEGAL_NAME = COMPANY_DISPLAY_NAME

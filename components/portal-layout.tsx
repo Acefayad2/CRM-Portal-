@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { PortalSidebar } from "@/components/portal-sidebar"
 import { useSidebar } from "@/contexts/sidebar-context"
 import { cn } from "@/lib/utils"
-import { SiteFooter } from "@/components/site-footer"
 
 interface PortalLayoutProps {
   children: React.ReactNode
@@ -54,11 +53,6 @@ export function PortalLayout({ children }: PortalLayoutProps) {
           )}
         >
           <div className="flex-1">{children}</div>
-          {!isFullscreenMeeting && (
-            <div className="mt-12 border-t border-slate-300/60 pt-6">
-              <SiteFooter variant="portal" />
-            </div>
-          )}
         </main>
       </div>
     </div>

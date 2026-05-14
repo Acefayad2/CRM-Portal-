@@ -50,7 +50,7 @@ const faqs = [
   {
     question: "How quickly can a team go live?",
     answer:
-      "Most teams can configure a workspace and begin tracking leads the same day: invite users, import or add contacts, connect calendars, and align stages to your current funnel.",
+      "Most teams can configure a workspace and begin organizing contacts the same day: invite users, import or add records, connect calendars, and align stages to your current workflow.",
   },
   {
     question: "Is my client data sold for marketing?",
@@ -92,7 +92,7 @@ const platformPillars = [
   },
   {
     title: "Team updates",
-    body: "Share pipeline changes, wins, and handoffs so leadership and reps stay aligned.",
+    body: "Share stage updates, wins, and handoffs so leadership and reps stay aligned.",
     icon: Users,
   },
   {
@@ -103,11 +103,11 @@ const platformPillars = [
 ]
 
 const featureGrid = [
-  { title: "Pipeline clarity", desc: "Stages, owners, and activity in one view.", icon: BarChart3 },
+  { title: "Relationship clarity", desc: "Contacts, stages, and activity in one view.", icon: BarChart3 },
   { title: "Meetings & agendas", desc: "Prepare, present, and log outcomes without tab sprawl.", icon: Sparkles },
   { title: "Scripts & talk tracks", desc: "Centralize messaging so quality stays high at scale.", icon: FileText },
   { title: "Role-based access", desc: "Enterprise-style controls for sensitive client data.", icon: Shield },
-  { title: "Performance signals", desc: "Spot stalled deals and coach with evidence.", icon: BarChart3 },
+  { title: "Follow-up signals", desc: "Spot stalled follow-ups and coach with evidence.", icon: BarChart3 },
   { title: "Integrated workflows", desc: "Connect reminders, tasks, and client touchpoints.", icon: Globe },
 ]
 
@@ -124,13 +124,13 @@ export function MarketingHome() {
               CRM · SMS · Compliance-ready workflows
             </p>
             <h1 className="text-balance font-serif text-4xl leading-tight md:text-5xl lg:text-6xl">
-              Pantheon Portal — CRM &amp; client messaging built for financial professionals
+              Pantheon Portal — CRM &amp; client messaging for teams and agencies
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-base font-medium leading-relaxed text-foreground md:text-lg">
               {BUSINESS_POSITIONING}
             </p>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-              Run pipeline, appointments, team coordination, and opted-in SMS notifications in one secure SaaS
+              Coordinate clients, appointments, team communication, and opted-in SMS notifications in one secure SaaS
               workspace—documented for carriers and auditors on{" "}
               <span className="font-medium text-foreground">pantheonportal.com</span>.
             </p>
@@ -215,7 +215,7 @@ export function MarketingHome() {
               One platform for CRM communication and operational SMS
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-              Purpose-built for financial professionals and agencies: coordinate clients, appointments, CRM-driven
+              Purpose-built for teams and agencies: coordinate clients, appointments, CRM-driven
               notifications, and compliant outreach without losing context—or compliance guardrails.
             </p>
           </div>
@@ -244,7 +244,7 @@ export function MarketingHome() {
               From first touch to renewal—one workflow
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-              {COMPANY_DISPLAY_NAME} connects agents, clients, calendars, and compliant messaging so financial firms and
+              {COMPANY_DISPLAY_NAME} connects agents, clients, calendars, and compliant messaging so firms and
               agencies run a professional, repeatable service motion.
             </p>
           </div>
@@ -270,7 +270,7 @@ export function MarketingHome() {
               <Bell className="h-8 w-8 text-primary" aria-hidden />
               <h3 className="mt-4 font-serif text-xl">CRM notifications</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Pipeline moves, tasks, and account events surface to the right people so opportunities don&apos;t stall in
+                Stage changes, tasks, and account events surface to the right people so follow-ups don&apos;t stall in
                 silence.
               </p>
             </article>
@@ -341,7 +341,7 @@ export function MarketingHome() {
           <div className="mb-12 text-center">
             <h2 className="font-serif text-3xl md:text-4xl">Use cases from the field</h2>
             <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-              Representative outcomes financial firms and agencies pursue with {COMPANY_DISPLAY_NAME}.
+              Representative outcomes teams and agencies pursue with {COMPANY_DISPLAY_NAME}.
             </p>
           </div>
           <div className="grid gap-8 md:grid-cols-2">
@@ -461,7 +461,7 @@ export function MarketingHome() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#e8f5e9]/40 via-[#e3f2fd]/40 to-[#f3e5f5]/30" />
         <div className="relative mx-auto max-w-3xl text-center">
           <h2 className="mb-4 font-serif text-3xl md:text-4xl lg:text-5xl">
-            Ready to run a cleaner, more compliant revenue operation?
+            Ready to run a cleaner, more compliant client operation?
           </h2>
           <p className="mx-auto mb-8 max-w-md text-muted-foreground">
             Start on {COMPANY_DISPLAY_NAME} today, or speak with our team about rollout, training, and SMS registration
@@ -548,14 +548,14 @@ function ChatDemo() {
             </nav>
           </div>
           <div className="p-6 text-center sm:p-8">
-            <h2 className="mb-2 text-xl font-semibold">Ask about your pipeline</h2>
+            <h2 className="mb-2 text-xl font-semibold">Ask about your workspace</h2>
             <p className="mb-6 text-sm text-muted-foreground">
-              Summarize stalled deals, draft follow-up SMS, or pull the next best action for a client—grounded in your
-              workspace data.
+              Summarize open follow-ups, draft compliant SMS, or prep for the next client touch—grounded in your CRM
+              records and scheduled activity.
             </p>
             <div className="mx-auto mb-6 max-w-md">
               <div className="rounded-lg border p-3 text-left">
-                <span className="text-sm text-muted-foreground">Which opportunities missed a touch this week?</span>
+                <span className="text-sm text-muted-foreground">Which clients need a follow-up before Friday?</span>
                 <div className="mt-3 flex items-center justify-between border-t pt-2">
                   <span className="text-xs text-muted-foreground">Workspace context attached</span>
                   <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
@@ -565,9 +565,9 @@ function ChatDemo() {
               </div>
             </div>
             <div className="mx-auto max-w-md space-y-2 text-left text-sm text-muted-foreground">
-              <p>Prepare agenda for tomorrow&apos;s executive review.</p>
+              <p>Prepare talking points for tomorrow&apos;s team stand-up.</p>
               <p>Draft a compliant SMS reminder for tomorrow&apos;s appointments.</p>
-              <p>Show pipeline health by stage for the West region.</p>
+              <p>Show meeting load and task backlog by advisor this week.</p>
             </div>
           </div>
         </div>
@@ -595,17 +595,17 @@ function DashboardMockup() {
       </div>
       <div className="relative grid gap-4 p-4 sm:grid-cols-3 sm:p-6">
         <div className="rounded-xl border border-primary/15 bg-card/90 p-4 shadow-sm backdrop-blur-sm sm:col-span-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pipeline snapshot</p>
-          <p className="mt-2 font-serif text-3xl font-semibold tabular-nums">$24.8M</p>
-          <p className="text-xs text-muted-foreground">Weighted pipeline · 90-day outlook</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Activity overview</p>
+          <p className="mt-2 font-serif text-3xl font-semibold tabular-nums">142</p>
+          <p className="text-xs text-muted-foreground">Active contacts · engagement snapshot</p>
           <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-4 text-center">
             <div>
-              <p className="text-lg font-semibold tabular-nums text-emerald-600">142</p>
-              <p className="text-[10px] uppercase text-muted-foreground">Active</p>
+              <p className="text-lg font-semibold tabular-nums text-emerald-600">38</p>
+              <p className="text-[10px] uppercase text-muted-foreground">Meetings</p>
             </div>
             <div>
-              <p className="text-lg font-semibold tabular-nums">38</p>
-              <p className="text-[10px] uppercase text-muted-foreground">Meetings</p>
+              <p className="text-lg font-semibold tabular-nums">24</p>
+              <p className="text-[10px] uppercase text-muted-foreground">SMS sent</p>
             </div>
             <div>
               <p className="text-lg font-semibold tabular-nums text-amber-600">12</p>
@@ -627,7 +627,7 @@ function DashboardMockup() {
       <div className="relative border-t border-primary/10 bg-card/70 px-4 py-4 text-center sm:px-8">
         <h3 className="text-sm font-semibold">Executive overview</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Live pipeline, meetings, messaging health, and seat usage—built for GTM and compliance leadership.
+          Live activity, meetings, messaging health, and seat usage—built for leadership and compliance oversight.
         </p>
       </div>
     </div>

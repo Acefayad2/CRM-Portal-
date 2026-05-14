@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev -p 3333",
-    "dev:clean": "rm -rf .next && next dev -p 3333",
+    "dev": "next dev --hostname 0.0.0.0 --port 5436",
+    "dev:clean": "rm -rf .next && next dev --hostname 0.0.0.0 --port 5436",
+    "dev:3333": "next dev --hostname 0.0.0.0 --port 3333",
     "lint": "next lint",
     "start": "next start"
   },
