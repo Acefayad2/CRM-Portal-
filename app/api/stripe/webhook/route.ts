@@ -36,6 +36,8 @@ export async function POST(request: Request) {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription
+        const periodEndUnix = (sub as unknown as { current_period_end?: number | null })
+          .current_period_end
         const workspaceId = sub.metadata?.workspace_id
         const planId = sub.metadata?.plan_id
         if (!workspaceId || !planId) break
@@ -45,7 +47,10 @@ export async function POST(request: Request) {
           status: sub.status === "active" ? "active" : sub.status,
           stripe_customer_id: sub.customer as string,
           stripe_subscription_id: sub.id,
-          current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+          current_period_end:
+            typeof periodEndUnix === "number"
+              ? new Date(periodEndUnix * 1000).toISOString()
+              : null,
           updated_at: new Date().toISOString(),
         })
         break

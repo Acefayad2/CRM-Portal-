@@ -19,12 +19,9 @@ export async function middleware(request: NextRequest) {
 
   const env = getSupabaseBrowserEnv()
   if (!env) {
-    if (isProtectedPath(pathname) && !pathname.startsWith("/api/")) {
-      return NextResponse.redirect(
-        new URL("/login?error=supabase_not_configured", request.url)
-      )
-    }
-    return response
+    return NextResponse.redirect(
+      new URL("/login?error=supabase_not_configured", request.url)
+    )
   }
 
   const supabase = createServerClient(env.url, env.anonKey, {
@@ -45,14 +42,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (pathname.startsWith("/api/")) {
-    return response
-  }
-
-  if (!isProtectedPath(pathname)) {
-    return response
-  }
-
   if (!user) {
     const login = new URL("/login", request.url)
     login.searchParams.set("next", `${pathname}${request.nextUrl.search}`)
@@ -64,7 +53,7 @@ export async function middleware(request: NextRequest) {
   const needsVerification =
     hasPhone &&
     !isVerified &&
-    PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+    isProtectedPath(pathname)
   const canAccessUnverified = ALLOW_UNVERIFIED.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   )
@@ -78,6 +67,15 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    /*
+     * Only routes that need auth checks or session refresh.
+     * Avoids a Supabase getUser() round-trip on every marketing/legal/static hit.
+     */
+    "/portal",
+    "/portal/:path*",
+    "/join-team",
+    "/join-team/:path*",
+    "/admin",
+    "/admin/:path*",
   ],
 }

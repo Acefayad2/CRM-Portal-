@@ -1,11 +1,12 @@
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  images: {
-    unoptimized: true,
-  },
+  // Avoid tracing from a parent folder when another lockfile exists (e.g. ~/Documents/Playground).
+  outputFileTracingRoot: __dirname,
   async redirects() {
     return [
       {

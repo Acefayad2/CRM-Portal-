@@ -11,7 +11,7 @@ interface PortalLayoutProps {
 }
 
 export function PortalLayout({ children }: PortalLayoutProps) {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
   const { isCollapsed } = useSidebar()
   const isImmersivePage = pathname.startsWith("/portal/calendars") || pathname.startsWith("/portal/resources")
   const isLightPage = pathname === "/portal" || pathname.startsWith("/portal/trackers")
