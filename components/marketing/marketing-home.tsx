@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SmsCtaMicrocopy } from "@/components/compliance/sms-consent"
+import { MarketingHeader } from "@/components/marketing/marketing-header"
 import { BUSINESS_POSITIONING, COMPANY_DISPLAY_NAME, smsProgram } from "@/lib/site"
 
 const faqs = [
@@ -115,7 +116,9 @@ export function MarketingHome() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
-    <main>
+    <div className="flex w-full flex-1 flex-col">
+      <MarketingHeader />
+      <main>
       <section className="relative w-full overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#e8f5e9]/30 via-[#e3f2fd]/30 to-[#f3e5f5]/20" />
         <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-10 sm:px-6 sm:pb-12 sm:pt-14">
@@ -476,6 +479,7 @@ export function MarketingHome() {
         </div>
       </section>
     </main>
+    </div>
   )
 }
 

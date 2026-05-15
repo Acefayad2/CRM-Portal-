@@ -1,16 +1,21 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { AuthLayout } from "@/components/auth-layout"
 import { Button } from "@/components/ui/button"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { cn } from "@/lib/utils"
+import { getSafeInternalNextPath } from "@/lib/auth-redirect"
 
-export default function VerifyPhonePage() {
+function VerifyPhoneForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const resumeNext = getSafeInternalNextPath(searchParams?.get("next"), "/join-team?new=1")
+  const verifyPhoneLoginNext = `/verify-phone?next=${encodeURIComponent(resumeNext)}`
+
   const [code, setCode] = useState("")
   const [loading, setLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
@@ -23,14 +28,14 @@ export default function VerifyPhonePage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setChecking(false)
       if (!user) {
-        router.replace("/login?next=/verify-phone")
+        router.replace(`/login?next=${encodeURIComponent(verifyPhoneLoginNext)}`)
         return
       }
       if (user.user_metadata?.phone_verified === true) {
-        router.replace("/join-team?new=1")
+        router.replace(resumeNext)
       }
     })
-  }, [router])
+  }, [router, resumeNext, verifyPhoneLoginNext])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -51,7 +56,7 @@ export default function VerifyPhonePage() {
         setError(data.error ?? "Verification failed. Please try again.")
         return
       }
-      router.push("/join-team?new=1")
+      router.push(resumeNext)
     } catch (err) {
       setError("Something went wrong. Please try again.")
     } finally {
@@ -157,5 +162,23 @@ export default function VerifyPhonePage() {
         </div>
       </div>
     </AuthLayout>
+  )
+}
+
+function VerifyPhoneFallback() {
+  return (
+    <AuthLayout>
+      <div className="flex w-full max-w-md items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+      </div>
+    </AuthLayout>
+  )
+}
+
+export default function VerifyPhonePage() {
+  return (
+    <Suspense fallback={<VerifyPhoneFallback />}>
+      <VerifyPhoneForm />
+    </Suspense>
   )
 }

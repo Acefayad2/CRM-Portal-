@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { hasSupabaseBrowserEnv } from "@/lib/supabase/env"
+import { getSafeInternalNextPath } from "@/lib/auth-redirect"
 import { NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
     ? `${request.headers.get("x-forwarded-proto") ?? "https"}://${forwardedHost}`
     : url.origin
   const code = searchParams.get("code")
-  let next = searchParams.get("next") ?? "/portal"
+  let next = getSafeInternalNextPath(searchParams.get("next"), "/portal")
 
   if (!hasSupabaseBrowserEnv()) {
     return NextResponse.redirect(`${origin}/login?error=supabase_not_configured`)
@@ -27,9 +28,9 @@ export async function GET(request: Request) {
       const isVerified = user.user_metadata?.phone_verified === true
 
       if (!hasPhone) {
-        next = "/complete-profile"
+        next = `/complete-profile?next=${encodeURIComponent(next)}`
       } else if (!isVerified) {
-        next = "/verify-phone"
+        next = `/verify-phone?next=${encodeURIComponent(next)}`
       }
       return NextResponse.redirect(`${origin}${next}`)
     }

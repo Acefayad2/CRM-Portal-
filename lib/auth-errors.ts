@@ -7,7 +7,7 @@ export function getAuthErrorMessage(code: string | null): string {
     case "oauth_failed":
       return "Google sign-in failed. Please try again."
     case "supabase_not_configured":
-      return "Google sign-in is not configured. Add Supabase URL and anon key to .env.local."
+      return "Sign-in is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local."
     default:
       try {
         return decodeURIComponent(code)

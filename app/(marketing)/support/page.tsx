@@ -2,6 +2,7 @@ import Link from "next/link"
 import { LifeBuoy, Mail, MessageSquare, Rocket } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SmsCtaMicrocopy } from "@/components/compliance/sms-consent"
+import { MarketingHeader } from "@/components/marketing/marketing-header"
 import { COMPANY_DISPLAY_NAME, SUPPORT_EMAIL } from "@/lib/site"
 import type { Metadata } from "next"
 
@@ -19,7 +20,9 @@ const items = [
 
 export default function SupportPage() {
   return (
-    <div className="border-b bg-muted/15">
+    <div className="flex w-full flex-1 flex-col">
+      <MarketingHeader />
+      <div className="border-b bg-muted/15">
       <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:py-24">
         <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Support</p>
         <h1 className="mt-3 max-w-3xl font-serif text-4xl font-semibold tracking-tight sm:text-5xl">
@@ -96,6 +99,7 @@ export default function SupportPage() {
           <SmsCtaMicrocopy className="!text-left" />
         </div>
       </div>
+    </div>
     </div>
   )
 }

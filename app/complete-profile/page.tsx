@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { AuthLayout } from "@/components/auth-layout"
 import { BirthdayDatePicker } from "@/components/birthday-date-picker"
@@ -16,9 +16,14 @@ import {
   SmsOptInParagraph,
 } from "@/components/compliance/sms-consent"
 import { COMPANY_DISPLAY_NAME } from "@/lib/site"
+import { getSafeInternalNextPath } from "@/lib/auth-redirect"
 
-export default function CompleteProfilePage() {
+function CompleteProfileForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const resumeNext = getSafeInternalNextPath(searchParams?.get("next"), "/join-team?new=1")
+  const completeProfileLoginNext = `/complete-profile?next=${encodeURIComponent(resumeNext)}`
+
   const [profile, setProfile] = useState<{
     name: string
     email: string
@@ -35,11 +40,11 @@ export default function CompleteProfilePage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setChecking(false)
       if (!user) {
-        router.replace("/login?next=/complete-profile")
+        router.replace(`/login?next=${encodeURIComponent(completeProfileLoginNext)}`)
         return
       }
       if (user.user_metadata?.phone && user.user_metadata?.phone_verified) {
-        router.replace("/join-team?new=1")
+        router.replace(resumeNext)
         return
       }
       const name =
@@ -57,7 +62,7 @@ export default function CompleteProfilePage() {
         setBirthday(user.user_metadata.birthday)
       }
     })
-  }, [router])
+  }, [router, resumeNext, completeProfileLoginNext])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -87,7 +92,7 @@ export default function CompleteProfilePage() {
         setError(data.error ?? "Failed to save. Please try again.")
         return
       }
-      router.push("/verify-phone")
+      router.push(`/verify-phone?next=${encodeURIComponent(resumeNext)}`)
     } catch (err) {
       setError("Something went wrong. Please try again.")
     } finally {
@@ -197,5 +202,23 @@ export default function CompleteProfilePage() {
         </div>
       </div>
     </AuthLayout>
+  )
+}
+
+function CompleteProfileFallback() {
+  return (
+    <AuthLayout>
+      <div className="flex w-full max-w-md items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+      </div>
+    </AuthLayout>
+  )
+}
+
+export default function CompleteProfilePage() {
+  return (
+    <Suspense fallback={<CompleteProfileFallback />}>
+      <CompleteProfileForm />
+    </Suspense>
   )
 }

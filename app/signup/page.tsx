@@ -6,12 +6,12 @@ import { Suspense, useState } from "react"
 import { AuthDivider } from "@/components/auth/auth-divider"
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button"
 import { AuthLayout } from "@/components/auth-layout"
-import { BirthdayDatePicker } from "@/components/birthday-date-picker"
 import { PhoneInputWithCountry } from "@/components/phone-input-with-country"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getAuthErrorMessage } from "@/lib/auth-errors"
+import { getSafeInternalNextPath } from "@/lib/auth-redirect"
 import {
   SmsConsentCheckboxRow,
   SmsCtaMicrocopy,
@@ -23,11 +23,12 @@ function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const errorParam = searchParams?.get("error") ?? null
+  const afterAuthNext = getSafeInternalNextPath(searchParams?.get("next"), "/join-team?new=1")
+  const loginHref = `/login?next=${encodeURIComponent(afterAuthNext)}`
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
-  const [birthday, setBirthday] = useState("")
   const [password, setPassword] = useState("")
   const [smsConsent, setSmsConsent] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -38,10 +39,6 @@ function SignupForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
-    if (!birthday) {
-      setError("Please select your birthday")
-      return
-    }
     const phoneDigits = phone.replace(/\D/g, "")
     if (!phone || phoneDigits.length < 10) {
       setError("Please enter a valid phone number")
@@ -62,7 +59,6 @@ function SignupForm() {
           password,
           name: fullName,
           phone: phone.trim(),
-          birthday: birthday || undefined,
         }),
       })
       const data = await res.json()
@@ -159,16 +155,6 @@ function SignupForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="birthday" className="text-white/90">
-                Birthday
-              </Label>
-              <BirthdayDatePicker
-                value={birthday}
-                onChange={setBirthday}
-                placeholder="Pick your birthday"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="password" className="text-white/90">
                 Password
               </Label>
@@ -196,11 +182,11 @@ function SignupForm() {
               {loading ? "Creating account..." : "Sign up"}
             </Button>
             <AuthDivider />
-            <GoogleSignInButton variant="signup" redirectTo="/join-team?new=1" />
+            <GoogleSignInButton variant="signup" redirectTo={afterAuthNext} />
           </form>
           <p className="mt-6 text-center text-sm text-white/70">
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-white hover:underline">
+            <Link href={loginHref} className="font-medium text-white hover:underline">
               Sign in
             </Link>
           </p>

@@ -1,25 +1,34 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { getSupabaseBrowserEnv } from "@/lib/supabase/env"
+import { getSupabaseSsrCookieOptions } from "@/lib/supabase/ssr-cookie-options"
 
-const PROTECTED_PATHS = ["/portal", "/join-team"]
+const PROTECTED_PATHS = ["/portal", "/join-team", "/admin"]
 const ALLOW_UNVERIFIED = ["/verify-phone", "/complete-profile", "/login", "/signup", "/forgot-password", "/join-invite"]
+
+function isProtectedPath(pathname: string): boolean {
+  return PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: { headers: request.headers },
   })
 
-  if (process.env.NODE_ENV !== "production") {
-    return response
-  }
+  const pathname = request.nextUrl.pathname
 
   const env = getSupabaseBrowserEnv()
   if (!env) {
+    if (isProtectedPath(pathname) && !pathname.startsWith("/api/")) {
+      return NextResponse.redirect(
+        new URL("/login?error=supabase_not_configured", request.url)
+      )
+    }
     return response
   }
 
   const supabase = createServerClient(env.url, env.anonKey, {
+    cookieOptions: getSupabaseSsrCookieOptions(),
     cookies: {
       getAll() {
         return request.cookies.getAll()
@@ -32,27 +41,36 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const pathname = request.nextUrl.pathname
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (pathname.startsWith("/api/")) {
     return response
   }
 
-  if (user) {
-    const hasPhone = !!user.user_metadata?.phone
-    const isVerified = user.user_metadata?.phone_verified === true
-    const needsVerification =
-      hasPhone &&
-      !isVerified &&
-      PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
-    const canAccessUnverified = ALLOW_UNVERIFIED.some(
-      (p) => pathname === p || pathname.startsWith(p + "/")
-    )
+  if (!isProtectedPath(pathname)) {
+    return response
+  }
 
-    if (needsVerification && !canAccessUnverified) {
-      return NextResponse.redirect(new URL("/verify-phone", request.url))
-    }
+  if (!user) {
+    const login = new URL("/login", request.url)
+    login.searchParams.set("next", `${pathname}${request.nextUrl.search}`)
+    return NextResponse.redirect(login)
+  }
+
+  const hasPhone = !!user.user_metadata?.phone
+  const isVerified = user.user_metadata?.phone_verified === true
+  const needsVerification =
+    hasPhone &&
+    !isVerified &&
+    PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  const canAccessUnverified = ALLOW_UNVERIFIED.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  )
+
+  if (needsVerification && !canAccessUnverified) {
+    return NextResponse.redirect(new URL("/verify-phone", request.url))
   }
 
   return response

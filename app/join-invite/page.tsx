@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
+import { AuthDivider } from "@/components/auth/auth-divider"
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button"
 import { AuthLayout } from "@/components/auth-layout"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
@@ -109,6 +111,8 @@ function JoinInviteContent() {
                 <Button asChild variant="outline" className="w-full border-white/30 text-white hover:bg-white/10">
                   <Link href={`/signup?next=${encodeURIComponent(nextUrl)}`}>Sign up</Link>
                 </Button>
+                <AuthDivider />
+                <GoogleSignInButton variant="signin" redirectTo={nextUrl} />
               </div>
             </>
           )}

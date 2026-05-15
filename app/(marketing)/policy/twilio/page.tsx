@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { SiteFooter } from "@/components/site-footer"
+import { LegalDocumentShell } from "@/components/legal-document-shell"
 import { COMPANY_DISPLAY_NAME, SITE_ORIGIN, SUPPORT_EMAIL } from "@/lib/site"
 
 export const metadata: Metadata = {
@@ -13,26 +13,17 @@ export default function SmsCarrierPolicyPage() {
   const last = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
-          <Link
-            href="/"
-            className="text-lg font-semibold tracking-tight text-zinc-900 hover:text-zinc-700 dark:text-white dark:hover:text-zinc-300"
-          >
-            {COMPANY_DISPLAY_NAME}
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">SMS &amp; carrier policy</h1>
+    <LegalDocumentShell>
+      <main>
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
+          SMS &amp; carrier policy
+        </h1>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
           {COMPANY_DISPLAY_NAME} — A2P 10DLC / Telnyx-aligned disclosures
         </p>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">Last updated: {last}</p>
 
-        <p className="mt-6 rounded-lg border border-zinc-200 bg-white p-4 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+        <p className="mt-6 rounded-lg border border-zinc-200 bg-muted/40 p-4 text-sm dark:border-zinc-700">
           For customer-facing SMS disclosures (opt-in, STOP/HELP, frequency), read our{" "}
           <Link href="/sms-policy" className="font-medium text-indigo-600 underline dark:text-indigo-400">
             SMS &amp; communication policy
@@ -45,9 +36,9 @@ export default function SmsCarrierPolicyPage() {
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">1. Overview</h2>
             <p className="mt-2">
               {COMPANY_DISPLAY_NAME} sends and receives SMS through approved messaging carriers and CPaaS providers. We
-              commonly use <strong>Telnyx</strong> and may use comparable carriers (for example Twilio) for
-              redundancy, number provisioning, or regional delivery. This page describes how those providers fit into our
-              compliance posture.
+              commonly use <strong>Telnyx</strong> and may use comparable carriers (for example Twilio) for redundancy,
+              number provisioning, or regional delivery. This page describes how those providers fit into our compliance
+              posture.
             </p>
           </section>
 
@@ -64,7 +55,10 @@ export default function SmsCarrierPolicyPage() {
             <p className="mt-3">
               SMS consent captured on our website and product is used for these platform communications—not for selling
               your data to unrelated marketers. See our{" "}
-              <Link href="/privacy-policy" className="font-medium text-indigo-600 underline underline-offset-4 dark:text-indigo-400">
+              <Link
+                href="/privacy-policy"
+                className="font-medium text-indigo-600 underline underline-offset-4 dark:text-indigo-400"
+              >
                 Privacy Policy
               </Link>
               .
@@ -93,8 +87,7 @@ export default function SmsCarrierPolicyPage() {
               <Link href="/terms" className="font-medium text-indigo-600 underline underline-offset-4 dark:text-indigo-400">
                 Terms &amp; Conditions
               </Link>
-              . Transactional messages needed to secure your account may continue where permitted by law after an
-              opt-out.
+              . Transactional messages needed to secure your account may continue where permitted by law after an opt-out.
             </p>
           </section>
 
@@ -157,8 +150,6 @@ export default function SmsCarrierPolicyPage() {
           </Link>
         </div>
       </main>
-
-      <SiteFooter variant="legal" />
-    </div>
+    </LegalDocumentShell>
   )
 }

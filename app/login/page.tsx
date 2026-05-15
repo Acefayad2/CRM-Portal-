@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { AuthDivider } from "@/components/auth/auth-divider"
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button"
@@ -11,21 +11,22 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getAuthErrorMessage } from "@/lib/auth-errors"
+import { getSafeInternalNextPath } from "@/lib/auth-redirect"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
-  const [errorParam, setErrorParam] = useState<string | null>(null)
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setErrorParam(new URLSearchParams(window.location.search).get("error"))
-    }
-  }, [])
+  const searchParams = useSearchParams()
+  const errorParam = searchParams?.get("error") ?? null
+  const next = getSafeInternalNextPath(searchParams?.get("next"), "/portal")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
   const displayError = error || getAuthErrorMessage(errorParam)
+
+  const signupHref =
+    next === "/portal" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -38,7 +39,6 @@ export default function LoginPage() {
         password,
       })
       if (signInError) throw signInError
-      const next = new URLSearchParams(window.location.search).get("next") || "/portal"
       router.push(next)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed")
@@ -108,16 +108,34 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Sign in"}
             </Button>
             <AuthDivider />
-            <GoogleSignInButton variant="signin" redirectTo="/portal" />
+            <GoogleSignInButton variant="signin" redirectTo={next} />
           </form>
           <p className="mt-6 text-center text-sm text-white/70">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="font-medium text-white hover:underline">
+            <Link href={signupHref} className="font-medium text-white hover:underline">
               Sign up
             </Link>
           </p>
         </div>
       </div>
     </AuthLayout>
+  )
+}
+
+function LoginFallback() {
+  return (
+    <AuthLayout>
+      <div className="flex w-full max-w-md items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+      </div>
+    </AuthLayout>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginForm />
+    </Suspense>
   )
 }

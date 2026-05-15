@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Building2, Headphones, Mail, MapPin, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SmsCtaMicrocopy } from "@/components/compliance/sms-consent"
+import { MarketingHeader } from "@/components/marketing/marketing-header"
 import {
   COMPANY_DISPLAY_NAME,
   SITE_ORIGIN,
@@ -21,7 +22,9 @@ export default function ContactPage() {
   const region = getServiceRegion()
 
   return (
-    <div className="border-b bg-muted/25">
+    <div className="flex w-full flex-1 flex-col">
+      <MarketingHeader />
+      <div className="border-b bg-muted/25">
       <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:py-24">
         <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Contact</p>
         <h1 className="mt-3 font-serif text-4xl font-semibold tracking-tight sm:text-5xl">We respond to serious teams</h1>
@@ -113,6 +116,7 @@ export default function ContactPage() {
           <SmsCtaMicrocopy className="!text-left" />
         </div>
       </div>
+    </div>
     </div>
   )
 }
