@@ -7,6 +7,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const nextConfig = {
   // Avoid tracing from a parent folder when another lockfile exists (e.g. ~/Documents/Playground).
   outputFileTracingRoot: __dirname,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+    ],
+  },
   async redirects() {
     return [
       {

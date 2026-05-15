@@ -11,7 +11,11 @@ Add to `.env.local`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
+# Canonical public URL (metadata, invite links when unset). Production:
+NEXT_PUBLIC_SITE_URL=https://pantheonportal.com
+NEXT_PUBLIC_APP_URL=https://pantheonportal.com
 ```
+For **local only**, set those two to `http://localhost:5436` instead, or omit them so the app derives the origin from the request.
 
 ## 2. Enable Google in Supabase
 
@@ -25,8 +29,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
 3. **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**.
 4. Application type: **Web application**.
 5. **Authorized JavaScript origins:**
-   - `http://localhost:3000` (local)
-   - `https://yourdomain.com` (production)
+   - `http://localhost:5436` (local — this repo’s dev server uses port **5436**)
+   - `http://127.0.0.1:5436` (optional, if you open the app via 127.0.0.1)
+   - `https://pantheonportal.com` (production)
 6. **Authorized redirect URIs:**
    - `https://<your-project-ref>.supabase.co/auth/v1/callback`
    - In Supabase: **Authentication → URL Configuration** → copy the Site URL or Auth callback URL.
@@ -40,8 +45,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
 
 In **Authentication → URL Configuration**:
 
-- **Site URL**: `http://localhost:3000` (local) or `https://yourdomain.com`
-- **Redirect URLs**: add `http://localhost:3000/auth/callback` and your production callback URL.
+- **Site URL (local dev):** `http://localhost:5436`  
+- **Site URL (production):** `https://pantheonportal.com`  
+  (Switch in the dashboard when you cut over, or use separate Supabase projects for dev/prod.)
+
+- **Redirect URLs** (add each on its own line; Supabase must allow the exact URL your app uses after OAuth):
+
+  - `http://localhost:5436/auth/callback`
+  - `http://127.0.0.1:5436/auth/callback` (optional)
+  - `https://pantheonportal.com/auth/callback`
 
 ## 5. Restart the dev server
 
