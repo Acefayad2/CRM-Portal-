@@ -92,7 +92,11 @@ function CompleteProfileForm() {
         setError(data.error ?? "Failed to save. Please try again.")
         return
       }
-      router.push(`/verify-phone?next=${encodeURIComponent(resumeNext)}`)
+      router.push(
+        data.requiresPhoneVerification === true
+          ? `/verify-phone?next=${encodeURIComponent(resumeNext)}`
+          : resumeNext
+      )
     } catch (err) {
       setError("Something went wrong. Please try again.")
     } finally {

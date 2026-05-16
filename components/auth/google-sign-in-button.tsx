@@ -5,6 +5,8 @@ import { useState } from "react"
 import { GoogleIcon } from "@/components/google-icon"
 import { createClient } from "@/lib/supabase/client"
 import { getSafeInternalNextPath } from "@/lib/auth-redirect"
+import { getAuthErrorMessage } from "@/lib/auth-errors"
+import { hasSupabaseBrowserEnv } from "@/lib/supabase/env"
 
 interface GoogleSignInButtonProps {
   variant?: "signin" | "signup"
@@ -16,6 +18,10 @@ export function GoogleSignInButton({ variant = "signin", redirectTo }: GoogleSig
   const [loading, setLoading] = useState(false)
 
   async function handleGoogle() {
+    if (!hasSupabaseBrowserEnv()) {
+      router.push("/login?error=supabase_not_configured")
+      return
+    }
     setLoading(true)
     try {
       const next = getSafeInternalNextPath(redirectTo, "/portal")
@@ -54,7 +60,7 @@ export function GoogleSignInButton({ variant = "signin", redirectTo }: GoogleSig
     <button
       type="button"
       onClick={handleGoogle}
-      disabled={loading}
+      disabled={loading || !hasSupabaseBrowserEnv()}
       className="flex w-full items-center justify-center gap-2 rounded-md border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:pointer-events-none disabled:opacity-60"
       aria-label={
         variant === "signup"

@@ -7,7 +7,7 @@ export function getAuthErrorMessage(code: string | null): string {
     case "oauth_failed":
       return "Google sign-in failed. Please try again."
     case "supabase_not_configured":
-      return "Sign-in is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local."
+      return "Sign-in is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your host’s environment variables (Netlify/Vercel) or in .env.local for local dev, then redeploy."
     default:
       try {
         return decodeURIComponent(code)

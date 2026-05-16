@@ -38,6 +38,7 @@ import {
   Users,
   Pencil,
 } from "lucide-react"
+import { SMS_VERIFICATION_ENABLED } from "@/lib/sms-verification"
 
 function ChangePasswordCard() {
   const [codeSent, setCodeSent] = useState(false)
@@ -81,7 +82,9 @@ function ChangePasswordCard() {
       const res = await fetch("/api/auth/confirm-password-change", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.trim(), newPassword }),
+        body: JSON.stringify(
+          SMS_VERIFICATION_ENABLED ? { code: code.trim(), newPassword } : { newPassword }
+        ),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -106,7 +109,9 @@ function ChangePasswordCard() {
           Security
         </CardTitle>
         <CardDescription className="text-white/70">
-          Change your password. A verification code will be sent to your registered phone via SMS (valid 5 minutes).
+          {SMS_VERIFICATION_ENABLED
+            ? "Change your password. A verification code will be sent to your registered phone via SMS (valid 5 minutes)."
+            : "Change your password."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -115,6 +120,43 @@ function ChangePasswordCard() {
             <CheckCircle2 className="h-5 w-5 shrink-0" />
             Password updated. You can use your new password to sign in.
           </div>
+        ) : !SMS_VERIFICATION_ENABLED ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPasswordDirect" className="text-white">
+                New password
+              </Label>
+              <Input
+                id="newPasswordDirect"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 6 characters"
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPasswordDirect" className="text-white">
+                Confirm new password
+              </Label>
+              <Input
+                id="confirmPasswordDirect"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+              />
+            </div>
+            {error && <p className="text-red-400 text-sm">{error}</p>}
+            <Button
+              type="submit"
+              disabled={!newPassword || !confirmPassword || submitLoading}
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+            >
+              {submitLoading ? "Updating..." : <><Lock className="h-4 w-4 shrink-0" /> Change password</>}
+            </Button>
+          </form>
         ) : (
           <>
             {!codeSent ? (
@@ -297,22 +339,28 @@ export default function SettingsPage() {
 
   const handleProfileUpdate = async () => {
     setProfileError("")
-    if (!profileVerificationCode.trim() || profileVerificationCode.length !== 6) {
+    if (
+      SMS_VERIFICATION_ENABLED &&
+      (!profileVerificationCode.trim() || profileVerificationCode.length !== 6)
+    ) {
       setProfileError("Enter the 6-digit code sent to your phone")
       return
     }
     setProfileSaveLoading(true)
     try {
+      const payload: Record<string, string> = {
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        email: profile.email,
+        phone: profile.phone,
+      }
+      if (SMS_VERIFICATION_ENABLED) {
+        payload.code = profileVerificationCode.trim()
+      }
       const res = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: profileVerificationCode.trim(),
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          email: profile.email,
-          phone: profile.phone,
-        }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -410,7 +458,7 @@ export default function SettingsPage() {
   }
 
   const handleConfirmDeleteAccount = async () => {
-    if (!deleteCode.trim() || deleteCode.length !== 6) {
+    if (SMS_VERIFICATION_ENABLED && (!deleteCode.trim() || deleteCode.length !== 6)) {
       setDeleteError("Enter the 6-digit code sent to your phone")
       return
     }
@@ -420,7 +468,9 @@ export default function SettingsPage() {
       const res = await fetch("/api/auth/confirm-delete-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: deleteCode.trim() }),
+        body: JSON.stringify(
+          SMS_VERIFICATION_ENABLED ? { code: deleteCode.trim() } : {}
+        ),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -566,12 +616,23 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Verification required to save */}
                 <Separator className="bg-white/10" />
                 {profileSuccess ? (
                   <div className="flex items-center gap-2 text-green-400 text-sm">
                     <CheckCircle2 className="h-5 w-5 shrink-0" />
                     Profile saved successfully.
+                  </div>
+                ) : !SMS_VERIFICATION_ENABLED ? (
+                  <div className="space-y-2">
+                    {profileError && <p className="text-red-400 text-sm">{profileError}</p>}
+                    <Button
+                      type="button"
+                      onClick={handleProfileUpdate}
+                      disabled={profileSaveLoading}
+                      className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                    >
+                      {profileSaveLoading ? "Saving..." : "Save Changes"}
+                    </Button>
                   </div>
                 ) : profileVerificationStep === "idle" ? (
                   <div className="space-y-2">
@@ -1033,7 +1094,10 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-red-400">Delete Account</h3>
-                <p className="text-sm text-white/60">Permanently delete your account and all associated data. Requires verification by text message.</p>
+                <p className="text-sm text-white/60">
+                  Permanently delete your account and all associated data.
+                  {SMS_VERIFICATION_ENABLED ? " Requires verification by text message." : ""}
+                </p>
               </div>
               <Button
                 variant="outline"
@@ -1056,11 +1120,20 @@ export default function SettingsPage() {
                 Delete account
               </DialogTitle>
               <DialogDescription className="text-white/70">
-                This action cannot be undone. We will send a verification code to your phone to confirm.
+                {SMS_VERIFICATION_ENABLED
+                  ? "This action cannot be undone. We will send a verification code to your phone to confirm."
+                  : "This action cannot be undone."}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
-              {deleteStep === "idle" ? (
+              {!SMS_VERIFICATION_ENABLED ? (
+                <>
+                  <p className="text-sm text-white/80">
+                    Your account and all associated data will be permanently removed.
+                  </p>
+                  {deleteError && <p className="text-red-400 text-sm">{deleteError}</p>}
+                </>
+              ) : deleteStep === "idle" ? (
                 <>
                   <p className="text-sm text-white/80">
                     Click below to receive a 6-digit code on your registered phone. Enter the code to permanently delete your account.
@@ -1108,11 +1181,14 @@ export default function SettingsPage() {
               >
                 Cancel
               </Button>
-              {deleteStep === "code_sent" && (
+              {(!SMS_VERIFICATION_ENABLED || deleteStep === "code_sent") && (
                 <Button
                   type="button"
                   onClick={handleConfirmDeleteAccount}
-                  disabled={deleteCode.length !== 6 || deleteConfirmLoading}
+                  disabled={
+                    (SMS_VERIFICATION_ENABLED && deleteCode.length !== 6) ||
+                    deleteConfirmLoading
+                  }
                   className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   {deleteConfirmLoading ? "Deleting..." : "Permanently delete my account"}

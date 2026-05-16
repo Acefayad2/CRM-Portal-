@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import { getSupabaseBrowserEnv, hasSupabaseBrowserEnv } from "@/lib/supabase/env"
 import { getSupabaseSsrCookieOptions } from "@/lib/supabase/ssr-cookie-options"
 import { getSafeInternalNextPath } from "@/lib/auth-redirect"
+import { SMS_VERIFICATION_ENABLED } from "@/lib/sms-verification"
 
 export const dynamic = "force-dynamic"
 
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
 
   if (!hasPhone) {
     next = `/complete-profile?next=${encodeURIComponent(next)}`
-  } else if (!isVerified) {
+  } else if (SMS_VERIFICATION_ENABLED && !isVerified) {
     next = `/verify-phone?next=${encodeURIComponent(next)}`
   }
 

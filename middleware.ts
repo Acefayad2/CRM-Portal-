@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { getSupabaseBrowserEnv } from "@/lib/supabase/env"
 import { getSupabaseSsrCookieOptions } from "@/lib/supabase/ssr-cookie-options"
+import { SMS_VERIFICATION_ENABLED } from "@/lib/sms-verification"
 
 const PROTECTED_PATHS = ["/portal", "/join-team", "/admin"]
 const ALLOW_UNVERIFIED = ["/verify-phone", "/complete-profile", "/login", "/signup", "/forgot-password", "/join-invite"]
@@ -51,6 +52,7 @@ export async function middleware(request: NextRequest) {
   const hasPhone = !!user.user_metadata?.phone
   const isVerified = user.user_metadata?.phone_verified === true
   const needsVerification =
+    SMS_VERIFICATION_ENABLED &&
     hasPhone &&
     !isVerified &&
     isProtectedPath(pathname)

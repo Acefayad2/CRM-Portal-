@@ -7,6 +7,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { supabase } from "@/lib/supabase"
 import { NextResponse } from "next/server"
+import { SMS_VERIFICATION_ENABLED } from "@/lib/sms-verification"
 
 const PURPOSE = "account_delete"
 
@@ -26,32 +27,39 @@ export async function POST(request: Request) {
     }
 
     const code = body?.code?.trim()
-    if (!code) {
-      return NextResponse.json(
-        { error: "Verification code is required. Request a code first." },
-        { status: 400 }
-      )
-    }
 
     if (!supabase) {
       return NextResponse.json({ error: "Service not configured." }, { status: 503 })
     }
 
-    const { data: row, error: codeError } = await supabase
-      .from("sms_verification_codes")
-      .select("id, expires_at")
-      .eq("user_id", user.id)
-      .eq("purpose", PURPOSE)
-      .eq("code", code)
-      .single()
+    let verifiedCodeRowId: string | null = null
 
-    if (codeError || !row) {
-      return NextResponse.json({ error: "Invalid or expired code. Request a new code." }, { status: 400 })
-    }
+    if (SMS_VERIFICATION_ENABLED) {
+      if (!code) {
+        return NextResponse.json(
+          { error: "Verification code is required. Request a code first." },
+          { status: 400 }
+        )
+      }
 
-    if (new Date(row.expires_at) < new Date()) {
-      await supabase.from("sms_verification_codes").delete().eq("id", row.id)
-      return NextResponse.json({ error: "Code has expired. Request a new code." }, { status: 400 })
+      const { data: row, error: codeError } = await supabase
+        .from("sms_verification_codes")
+        .select("id, expires_at")
+        .eq("user_id", user.id)
+        .eq("purpose", PURPOSE)
+        .eq("code", code)
+        .single()
+
+      if (codeError || !row) {
+        return NextResponse.json({ error: "Invalid or expired code. Request a new code." }, { status: 400 })
+      }
+
+      if (new Date(row.expires_at) < new Date()) {
+        await supabase.from("sms_verification_codes").delete().eq("id", row.id)
+        return NextResponse.json({ error: "Code has expired. Request a new code." }, { status: 400 })
+      }
+
+      verifiedCodeRowId = row.id
     }
 
     const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id)
@@ -64,7 +72,9 @@ export async function POST(request: Request) {
       )
     }
 
-    await supabase.from("sms_verification_codes").delete().eq("id", row.id)
+    if (SMS_VERIFICATION_ENABLED && verifiedCodeRowId) {
+      await supabase.from("sms_verification_codes").delete().eq("id", verifiedCodeRowId)
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {

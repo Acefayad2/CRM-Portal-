@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getAuthErrorMessage } from "@/lib/auth-errors"
 import { getSafeInternalNextPath } from "@/lib/auth-redirect"
+import { hasSupabaseBrowserEnv } from "@/lib/supabase/env"
 
 function LoginForm() {
   const router = useRouter()
@@ -23,7 +24,9 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const displayError = error || getAuthErrorMessage(errorParam)
+  const supabaseReady = hasSupabaseBrowserEnv()
+  const configError = supabaseReady ? "" : getAuthErrorMessage("supabase_not_configured")
+  const displayError = error || configError || getAuthErrorMessage(errorParam)
 
   const signupHref =
     next === "/portal" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`
@@ -31,6 +34,10 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+    if (!supabaseReady) {
+      setError(getAuthErrorMessage("supabase_not_configured"))
+      return
+    }
     setLoading(true)
     try {
       const supabase = createClient()
@@ -102,7 +109,7 @@ function LoginForm() {
             )}
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || !supabaseReady}
               className="w-full bg-white/20 text-white hover:bg-white/30"
             >
               {loading ? "Signing in..." : "Sign in"}

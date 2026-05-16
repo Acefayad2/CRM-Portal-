@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase"
 import { validatePhone } from "@/lib/sms-utils"
 import { NextResponse } from "next/server"
 import { sendTelnyxSms } from "@/lib/telnyx"
+import { SMS_VERIFICATION_ENABLED } from "@/lib/sms-verification"
 
 function generateCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000))
@@ -52,27 +53,45 @@ export async function POST(request: Request) {
     }
 
     if (user.user_metadata?.phone_verified === true) {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ success: true, requiresPhoneVerification: false })
     }
 
-    const code = generateCode()
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+    const smsVerificationEnabled =
+      SMS_VERIFICATION_ENABLED &&
+      Boolean(supabase && process.env.TELNYX_API_KEY && process.env.TELNYX_PHONE_NUMBER)
 
-    if (supabase) {
-      await supabase.from("phone_verification_codes").insert({
-        user_id: user.id, phone, code, expires_at: expiresAt,
+    if (smsVerificationEnabled) {
+      const code = generateCode()
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+
+      await supabase!.from("phone_verification_codes").insert({
+        user_id: user.id,
+        phone,
+        code,
+        expires_at: expiresAt,
       })
+
+      const smsResult = await sendVerificationSms(phone, code)
+      if (!smsResult.ok) {
+        return NextResponse.json(
+          { error: smsResult.error ?? "Failed to send verification code." },
+          { status: 503 }
+        )
+      }
     }
 
-    const smsResult = await sendVerificationSms(phone, code)
-    if (!smsResult.ok) {
-      return NextResponse.json({ error: smsResult.error ?? "Failed to send verification code." }, { status: 503 })
+    const updatedMetadata = {
+      ...user.user_metadata,
+      phone,
+      birthday: birthday || null,
+      phone_verified: !smsVerificationEnabled,
     }
-
-    const updatedMetadata = { ...user.user_metadata, phone, birthday: birthday || null, phone_verified: false }
     await supabaseAuth.auth.updateUser({ data: updatedMetadata })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      requiresPhoneVerification: smsVerificationEnabled,
+    })
   } catch (err) {
     console.error("[api/auth/complete-profile] Error:", err)
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 })

@@ -7,6 +7,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { supabase } from "@/lib/supabase"
 import { NextResponse } from "next/server"
+import { SMS_VERIFICATION_ENABLED } from "@/lib/sms-verification"
 
 const MIN_PASSWORD_LENGTH = 6
 
@@ -28,9 +29,6 @@ export async function POST(request: Request) {
     const code = body?.code?.trim()
     const newPassword = body?.newPassword
 
-    if (!code) {
-      return NextResponse.json({ error: "Verification code is required." }, { status: 400 })
-    }
     if (typeof newPassword !== "string" || newPassword.length < MIN_PASSWORD_LENGTH) {
       return NextResponse.json(
         { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` },
@@ -42,21 +40,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Service not configured." }, { status: 503 })
     }
 
-    const { data: row, error: fetchError } = await supabase
-      .from("password_change_codes")
-      .select("id, expires_at")
-      .eq("user_id", user.id)
-      .eq("code", code)
-      .single()
+    let verifiedCodeRowId: string | null = null
 
-    if (fetchError || !row) {
-      return NextResponse.json({ error: "Invalid or expired code. Request a new code." }, { status: 400 })
-    }
+    if (SMS_VERIFICATION_ENABLED) {
+      if (!code) {
+        return NextResponse.json({ error: "Verification code is required." }, { status: 400 })
+      }
 
-    const expiresAt = new Date(row.expires_at)
-    if (expiresAt < new Date()) {
-      await supabase.from("password_change_codes").delete().eq("id", row.id)
-      return NextResponse.json({ error: "Code has expired. Request a new code." }, { status: 400 })
+      const { data: row, error: fetchError } = await supabase
+        .from("password_change_codes")
+        .select("id, expires_at")
+        .eq("user_id", user.id)
+        .eq("code", code)
+        .single()
+
+      if (fetchError || !row) {
+        return NextResponse.json({ error: "Invalid or expired code. Request a new code." }, { status: 400 })
+      }
+
+      const expiresAt = new Date(row.expires_at)
+      if (expiresAt < new Date()) {
+        await supabase.from("password_change_codes").delete().eq("id", row.id)
+        return NextResponse.json({ error: "Code has expired. Request a new code." }, { status: 400 })
+      }
+
+      verifiedCodeRowId = row.id
     }
 
     const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
@@ -71,7 +79,13 @@ export async function POST(request: Request) {
       )
     }
 
-    await supabase.from("password_change_codes").delete().eq("user_id", user.id)
+    if (SMS_VERIFICATION_ENABLED) {
+      if (verifiedCodeRowId) {
+        await supabase.from("password_change_codes").delete().eq("id", verifiedCodeRowId)
+      } else {
+        await supabase.from("password_change_codes").delete().eq("user_id", user.id)
+      }
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {

@@ -55,7 +55,23 @@ In **Authentication → URL Configuration**:
   - `http://127.0.0.1:5436/auth/callback` (optional)
   - `https://pantheonportal.com/auth/callback`
 
-## 5. Restart the dev server
+## 5. Production / Netlify / Vercel
+
+`.env.local` is **not** deployed to GitHub. Add the same variables in your hosting dashboard, then trigger a **new deploy**:
+
+| Variable | Where to get it |
+|----------|-----------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → **Project Settings** → **API** → Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → **API** → `anon` `public` key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → **API** → `service_role` (server only; never expose to browser) |
+| `NEXT_PUBLIC_SITE_URL` | `https://pantheonportal.com` (or your live domain) |
+| `NEXT_PUBLIC_APP_URL` | Same as `NEXT_PUBLIC_SITE_URL` |
+
+**Netlify:** Site settings → **Environment variables** → add each → **Deploys** → **Trigger deploy**.
+
+**Vercel:** Project → **Settings** → **Environment Variables** → add for Production → redeploy.
+
+## 6. Restart the dev server
 
 ```bash
 npm run dev

@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase"
 import { validatePhone } from "@/lib/sms-utils"
 import { NextResponse } from "next/server"
 import { sendTelnyxSms } from "@/lib/telnyx"
+import { SMS_VERIFICATION_ENABLED } from "@/lib/sms-verification"
 
 function generateCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000))
@@ -83,11 +84,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const smsVerificationEnabled = Boolean(
-      supabase &&
-      process.env.TELNYX_API_KEY &&
-      process.env.TELNYX_PHONE_NUMBER
-    )
+    const smsVerificationEnabled =
+      SMS_VERIFICATION_ENABLED &&
+      Boolean(supabase && process.env.TELNYX_API_KEY && process.env.TELNYX_PHONE_NUMBER)
 
     const phoneVerifiedByDefault = !smsVerificationEnabled
 

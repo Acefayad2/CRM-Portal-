@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { cn } from "@/lib/utils"
 import { getSafeInternalNextPath } from "@/lib/auth-redirect"
+import { SMS_VERIFICATION_ENABLED } from "@/lib/sms-verification"
 
 function VerifyPhoneForm() {
   const router = useRouter()
@@ -24,6 +25,10 @@ function VerifyPhoneForm() {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
+    if (!SMS_VERIFICATION_ENABLED) {
+      router.replace(resumeNext)
+      return
+    }
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       setChecking(false)
